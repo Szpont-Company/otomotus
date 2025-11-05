@@ -1,6 +1,7 @@
 package org.otomotus.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.otomotus.backend.auth.config.VerificationStatus;
 import org.otomotus.backend.config.UserRole;
 import org.otomotus.backend.dto.UserCreateRequestDto;
 import org.otomotus.backend.dto.UserResponseDto;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,6 +22,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final VerificationTokenService verificationTokenService;
+    private final EmailService emailService;
 
     public UserResponseDto create(UserCreateRequestDto userCreateRequestDto) {
         UserEntity userEntity = userMapper.toCreateRequestEntity(userCreateRequestDto);
@@ -27,7 +31,16 @@ public class UserService {
         userEntity.setCreatedAt(LocalDateTime.now());
         userEntity.setLastLoginDate(LocalDateTime.now());
 
-        return userMapper.toDto(userRepository.save(userEntity));
+        String token = verificationTokenService.generateToken();
+        userEntity.setVerificationToken(token);
+        userEntity.setTokenExpirationDate(LocalDateTime.now().plusHours(24));
+
+        userRepository.save(userEntity);
+
+        String verificationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+        emailService.sendVerificationEmail(userEntity.getEmail(), verificationUrl);
+
+        return userMapper.toDto(userEntity);
     }
 
     public List<UserResponseDto> getAll() {
@@ -69,5 +82,25 @@ public class UserService {
 
     public void delete(UUID userId) {
         userRepository.deleteById(userId);
+    }
+
+    public VerificationStatus verifyToken(String token) {
+        Optional<UserEntity> userOptional = userRepository.findByVerificationToken(token);
+
+        if (userOptional.isEmpty()) {
+            return VerificationStatus.INVALID;
+        }
+
+        UserEntity user = userOptional.get();
+
+        if (verificationTokenService.isTokenExpired(user.getTokenExpirationDate())) {
+            return VerificationStatus.EXPIRED;
+        }
+
+        user.setActivated(true);
+        user.setVerificationToken(null);
+        userRepository.save(user);
+
+        return VerificationStatus.VERIFIED;
     }
 }

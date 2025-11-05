@@ -43,4 +43,13 @@ public class UserEntity {
 
     @Column(nullable = false)
     private LocalDateTime lastLoginDate;
+
+    @Column(nullable = false)
+    private boolean activated = false;
+
+    @Column()
+    private String verificationToken;
+
+    @Column(nullable = false)
+    private LocalDateTime tokenExpirationDate;
 }
