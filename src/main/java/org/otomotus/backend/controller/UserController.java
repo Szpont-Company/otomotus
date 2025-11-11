@@ -5,6 +5,7 @@ import org.otomotus.backend.dto.UserResponseDto;
 import org.otomotus.backend.dto.UserUpdateRequestDto;
 import org.otomotus.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,28 +21,26 @@ public class UserController {
         this.userService = userService;
     }
 
-    //    Tworzenie usera przez admina
-    @PostMapping
-    public ResponseEntity<UserResponseDto> create(@RequestBody UserCreateRequestDto userCreateRequestDto) {
-        return ResponseEntity.ok(userService.create(userCreateRequestDto));
-    }
-
     @GetMapping
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<UserResponseDto>> getAll() {
         return ResponseEntity.ok(userService.getAll());
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<UserResponseDto> getById(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.getById(userId));
     }
 
     @PatchMapping("/{userId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<UserResponseDto> patch(@PathVariable UUID userId, @RequestBody UserUpdateRequestDto userUpdateRequest) {
         return ResponseEntity.ok(userService.patch(userId, userUpdateRequest));
     }
 
     @DeleteMapping("/{userId}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<UserResponseDto> delete(@PathVariable UUID userId) {
         userService.delete(userId);
         return ResponseEntity.noContent().build();
