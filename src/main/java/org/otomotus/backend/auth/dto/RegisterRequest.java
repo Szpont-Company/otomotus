@@ -23,12 +23,12 @@ public class RegisterRequest {
 
     @NotBlank(message = "Name cannot be empty")
     @Size(min = 3, max = 50, message = "Name must be between 2 and 50 characters long")
-    @Pattern(regexp = "^[\\p{L}\\p{M}]+([ '\\-][\\p{L}\\p{M}]+)*$\n", message = "Invalid format")
+    @Pattern(regexp = "^[\\p{L}\\p{M}]+([ '\\-][\\p{L}\\p{M}]+)*$", message = "Invalid format")
     private String firstName;
 
     @NotBlank(message = "Last name cannot be empty")
     @Size(min = 3, max = 50, message = "Last name must be between 2 and 50 characters long")
-    @Pattern(regexp = "^[\\p{L}\\p{M}]+([ '\\-][\\p{L}\\p{M}]+)*$\n", message = "Invalid format")
+    @Pattern(regexp = "^[\\p{L}\\p{M}]+([ '\\-][\\p{L}\\p{M}]+)*$", message = "Invalid format")
     private String lastName;
 
     @NotBlank(message = "Phone number cannot be empty")
