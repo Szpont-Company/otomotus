@@ -2,13 +2,16 @@ package org.otomotus.backend.service;
 
 import lombok.RequiredArgsConstructor;
 import org.otomotus.backend.auth.config.VerificationStatus;
+import org.otomotus.backend.auth.dto.RegisterRequest;
+import org.otomotus.backend.auth.service.VerificationTokenService;
 import org.otomotus.backend.config.UserRole;
-import org.otomotus.backend.dto.UserCreateRequestDto;
 import org.otomotus.backend.dto.UserResponseDto;
 import org.otomotus.backend.dto.UserUpdateRequestDto;
 import org.otomotus.backend.entity.UserEntity;
+import org.otomotus.backend.exception.UserAlreadyExistsException;
 import org.otomotus.backend.mapper.UserMapper;
 import org.otomotus.backend.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,12 +27,22 @@ public class UserService {
     private final UserMapper userMapper;
     private final VerificationTokenService verificationTokenService;
     private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserResponseDto create(UserCreateRequestDto userCreateRequestDto) {
-        UserEntity userEntity = userMapper.toCreateRequestEntity(userCreateRequestDto);
+    public UserResponseDto registerUser(RegisterRequest registerRequest) {
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            throw new UserAlreadyExistsException("Email already exists");
+        }
+
+        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            throw new UserAlreadyExistsException("Username already taken");
+        }
+
+        UserEntity userEntity = userMapper.toRegisterRequestEntity(registerRequest);
         userEntity.setRole(UserRole.USER);
         userEntity.setCreatedAt(LocalDateTime.now());
         userEntity.setLastLoginDate(LocalDateTime.now());
+        userEntity.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
 
         String token = verificationTokenService.generateToken();
         userEntity.setVerificationToken(token);
