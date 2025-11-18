@@ -18,9 +18,9 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
 
-    public MessageEntity sendMessage(UUID senderId, UUID recipientId, String content) {
+    public MessageEntity sendMessage(UUID senderId, UUID recipientId, UUID productId, String content) {
         ConversationEntity conversation = conversationRepository.findConversationBetweenUsers(senderId, recipientId)
-                .orElseGet(() -> createNewConversation(senderId, recipientId));
+                .orElseGet(() -> createNewConversation(senderId, recipientId, productId));
 
         MessageEntity msg = new MessageEntity();
         msg.setConversation(conversation);
@@ -31,10 +31,11 @@ public class ChatService {
         return messageRepository.save(msg);
     }
 
-    private ConversationEntity createNewConversation(UUID senderId, UUID recipientId) {
+    private ConversationEntity createNewConversation(UUID senderId, UUID recipientId, UUID productId) {
         ConversationEntity conversation = new ConversationEntity();
         conversation.setBuyerId(senderId);
         conversation.setSellerId(recipientId);
+        conversation.setProductId(productId);
 
         return conversationRepository.save(conversation);
     }

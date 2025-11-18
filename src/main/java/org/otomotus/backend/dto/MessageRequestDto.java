@@ -16,6 +16,7 @@ import java.util.UUID;
 public class MessageRequestDto {
     private UUID senderId;
     private UUID recipientId;
+    private UUID productId;
     @NotBlank(message = "Content cannot be empty!")
     @Size(max=300, message = "Message cannot be longer than 300 characters!")
     private String content;

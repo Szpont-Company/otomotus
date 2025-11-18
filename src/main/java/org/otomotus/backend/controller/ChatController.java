@@ -22,6 +22,7 @@ public class ChatController {
         MessageEntity msg = chatSrv.sendMessage(
                 request.getSenderId(),
                 request.getRecipientId(),
+                request.getProductId(),
                 request.getContent()
         );
         return ResponseEntity.ok(msg);
