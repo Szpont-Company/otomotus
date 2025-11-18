@@ -2,8 +2,8 @@ package org.otomotus.backend.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.otomotus.backend.dto.MessageRequestDto;
 import org.otomotus.backend.entity.MessageEntity;
-import org.otomotus.backend.entity.MessageRequest;
 import org.otomotus.backend.service.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ public class ChatController {
     private final ChatService chatSrv;
 
     @PostMapping("/send")
-    public ResponseEntity<MessageEntity> sendMessage(@RequestBody MessageRequest request) {
+    public ResponseEntity<MessageEntity> sendMessage(@RequestBody MessageRequestDto request) {
         MessageEntity msg = chatSrv.sendMessage(
                 request.getSenderId(),
                 request.getRecipientId(),
@@ -34,7 +34,7 @@ public class ChatController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<MessageEntity> updateMessage(@PathVariable("id") UUID msgId,
-                                                       @Valid @RequestBody MessageRequest request) {
+                                                       @Valid @RequestBody MessageRequestDto request) {
         MessageEntity newMsg = chatSrv.editMessage(
                 msgId,
                 request.getContent()

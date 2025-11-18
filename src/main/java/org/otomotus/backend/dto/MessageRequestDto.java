@@ -1,27 +1,22 @@
-package org.otomotus.backend.entity;
+package org.otomotus.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
 
 @Getter
 @Setter
-public class MessageRequest {
+@NoArgsConstructor
+@AllArgsConstructor
+public class MessageRequestDto {
     private UUID senderId;
     private UUID recipientId;
     @NotBlank(message = "Content cannot be empty!")
     @Size(max=300, message = "Message cannot be longer than 300 characters!")
     private String content;
-
-    public MessageRequest() {}
-
-    public MessageRequest(UUID senderId, UUID recipientId, String content) {
-        this.senderId = senderId;
-        this.recipientId = recipientId;
-        this.content = content;
-    }
-
 }

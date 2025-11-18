@@ -23,12 +23,10 @@ public class ChatService {
                 .orElseGet(() -> createNewConversation(senderId, recipientId));
 
         MessageEntity msg = new MessageEntity();
-        msg.setConversationId(conversation.getId());
+        msg.setConversation(conversation);
         msg.setSenderId(senderId);
         msg.setRecipientId(recipientId);
         msg.setMsgContent(content);
-        msg.setTimestamp(LocalDateTime.now());
-        msg.setRead(false);
 
         return messageRepository.save(msg);
     }
@@ -37,18 +35,17 @@ public class ChatService {
         ConversationEntity conversation = new ConversationEntity();
         conversation.setBuyerId(senderId);
         conversation.setSellerId(recipientId);
-        conversation.setCreatedAt(LocalDateTime.now());
+
         return conversationRepository.save(conversation);
     }
 
     public List<MessageEntity> getConversationMessages(UUID conversationId) {
-        return messageRepository.findByConversationId(conversationId);
+        return messageRepository.findAllByConversation_Id(conversationId);
     }
 
     public MessageEntity editMessage(UUID msgId, String content) {
         MessageEntity msg = messageRepository.findById(msgId)
-                .orElseThrow(() -> new RuntimeException("Message not found!"));
-        msg.setEditedTimestamp(LocalDateTime.now());
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
         msg.setMsgContent(content);
         messageRepository.save(msg);
 
@@ -57,7 +54,7 @@ public class ChatService {
 
     public MessageEntity markRead(UUID msgId) {
         MessageEntity msg = messageRepository.findById(msgId)
-                .orElseThrow(() -> new RuntimeException("Message not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
         if(!msg.isRead()) {
             msg.setRead(true);
             msg.setReadTimestamp(LocalDateTime.now());
@@ -68,7 +65,7 @@ public class ChatService {
 
     public MessageEntity markUnread(UUID msgId) {
         MessageEntity msg = messageRepository.findById(msgId)
-                .orElseThrow(() -> new RuntimeException("Message not found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
         if(msg.isRead()) {
             msg.setRead(false);
             msg.setReadTimestamp(null);
