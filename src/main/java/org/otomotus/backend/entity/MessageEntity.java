@@ -1,5 +1,7 @@
 package org.otomotus.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,11 +21,9 @@ public class MessageEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    //@Column(nullable = false)
-    //private UUID conversationId;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="conversation_id", nullable = false)
+    @JsonIgnore
     private ConversationEntity conversation;
 
     @Column(nullable = false)
@@ -48,4 +48,8 @@ public class MessageEntity {
     @Column(name="message_read_timestamp")
     private LocalDateTime readTimestamp;
 
+    @JsonProperty("conversationId")
+    public UUID getConversationId() {
+        return conversation != null ? conversation.getId() : null;
+    }
 }
