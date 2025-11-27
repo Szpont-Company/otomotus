@@ -11,9 +11,9 @@ import java.util.UUID;
 public class GenerationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID generation_id;
 
-    @Column
+    @Column(nullable = false)
     private String name;
 
     @ManyToOne

@@ -12,9 +12,9 @@ import java.util.UUID;
 public class BrandEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID brand_id;
 
-    @Column
+    @Column(nullable = false)
     private String name;
 
     @OneToMany(mappedBy = "models")

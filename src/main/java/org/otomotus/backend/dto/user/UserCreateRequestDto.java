@@ -1,4 +1,4 @@
-package org.otomotus.backend.dto;
+package org.otomotus.backend.dto.user;
 
 import lombok.*;
 

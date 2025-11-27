@@ -1,8 +1,7 @@
 package org.otomotus.backend.controller;
 
-import org.otomotus.backend.dto.UserCreateRequestDto;
-import org.otomotus.backend.dto.UserResponseDto;
-import org.otomotus.backend.dto.UserUpdateRequestDto;
+import org.otomotus.backend.dto.user.UserResponseDto;
+import org.otomotus.backend.dto.user.UserUpdateRequestDto;
 import org.otomotus.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -15,42 +15,42 @@ import java.util.UUID;
 public class CarEntity {
     @Id
     @GeneratedValue(strategy =GenerationType.UUID)
-    private UUID id;
+    private UUID car_id;
 
     @ManyToOne
     private GenerationEntity generation;
 
-    @Column
+    @Column(nullable = false)
     private Integer year;
 
-    @Column
+    @Column(nullable = false)
     private Integer mileage;
 
-    @Column
+    @Column(nullable = false)
     private Integer enginePower;
 
-    @Column
+    @Column(nullable = false)
     private Integer engineCapacity;
 
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private FuelType fuelType;
 
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private GearboxType gearboxType;
 
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private DriveType driveType;
 
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private BodyType bodyType;
 
-    @Column
+    @Column(nullable = false)
     private Integer doors;
 
-    @Column
+    @Column(nullable = false)
     private Integer seats;
 }

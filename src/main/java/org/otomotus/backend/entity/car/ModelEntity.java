@@ -12,9 +12,9 @@ import java.util.UUID;
 public class ModelEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private UUID model_id;
 
-    @Column
+    @Column(nullable = false)
     private String name;
 
     @ManyToOne
