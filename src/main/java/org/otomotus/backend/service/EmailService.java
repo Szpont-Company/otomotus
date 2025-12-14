@@ -22,4 +22,15 @@ public class EmailService {
 
         mailSender.send(mailMessage);
     }
+
+    @Async
+    public void sendNotificationEmail(String to, String subject, String body) {
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setTo(to);
+        mailMessage.setSubject(subject);
+        mailMessage.setText(body);
+        mailMessage.setFrom("kurde_3poczta_juz@onet.pl");
+
+        mailSender.send(mailMessage);
+    }
 }

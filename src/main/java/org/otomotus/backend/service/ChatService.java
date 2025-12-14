@@ -18,6 +18,8 @@ import java.util.UUID;
 public class ChatService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
+    private final MailNotificationService mailNotificationService;
+    private final WebsocketNotificationService websocketNotificationService;
 
     public MessageEntity sendMessage(UUID senderId, UUID recipientId, UUID productId, String content) {
         ConversationEntity conversation = conversationRepository.findConversationBetweenUsers(senderId, recipientId, productId)
@@ -29,7 +31,10 @@ public class ChatService {
         msg.setRecipientId(recipientId);
         msg.setMsgContent(content);
 
-        return messageRepository.save(msg);
+        msg = messageRepository.save(msg);
+        mailNotificationService.notifyMessage(msg);
+
+        return msg;
     }
 
     private ConversationEntity createNewConversation(UUID senderId, UUID recipientId, UUID productId) {
