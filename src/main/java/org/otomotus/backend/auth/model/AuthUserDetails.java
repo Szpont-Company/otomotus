@@ -1,7 +1,6 @@
 package org.otomotus.backend.auth.model;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.otomotus.backend.entity.UserEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -5,14 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.otomotus.backend.auth.model.AuthUserDetails;
 import org.otomotus.backend.dto.MessageRequestDto;
 import org.otomotus.backend.entity.MessageEntity;
-import org.otomotus.backend.entity.UserEntity;
 import org.otomotus.backend.service.ChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.attribute.UserPrincipal;
 import java.util.List;
 import java.util.UUID;
 
