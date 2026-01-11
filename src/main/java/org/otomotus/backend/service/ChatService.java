@@ -19,7 +19,7 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final MailNotificationService mailNotificationService;
-    private final WebsocketNotificationService websocketNotificationService;
+    private final ChatWsPublisherService wsPublisher;
 
     public MessageEntity sendMessage(UUID senderId, UUID recipientId, UUID productId, String content) {
         ConversationEntity conversation = conversationRepository.findConversationBetweenUsers(senderId, recipientId, productId)
@@ -31,10 +31,12 @@ public class ChatService {
         msg.setRecipientId(recipientId);
         msg.setMsgContent(content);
 
-        msg = messageRepository.save(msg);
-        mailNotificationService.notifyMessage(msg);
+        MessageEntity saved = messageRepository.save(msg);
 
-        return msg;
+        mailNotificationService.notifyMessage(saved);
+        wsPublisher.newMessage(saved);
+
+        return saved;
     }
 
     private ConversationEntity createNewConversation(UUID senderId, UUID recipientId, UUID productId) {
@@ -68,6 +70,8 @@ public class ChatService {
         msg.setMsgContent(content);
         messageRepository.save(msg);
 
+        wsPublisher.editMessage(msg);
+
         return msg;
     }
 
@@ -83,6 +87,8 @@ public class ChatService {
             msg.setRead(true);
             msg.setReadTimestamp(LocalDateTime.now());
             messageRepository.save(msg);
+
+            wsPublisher.readMessage(msg);
         }
         return msg;
     }
@@ -99,6 +105,8 @@ public class ChatService {
             msg.setRead(false);
             msg.setReadTimestamp(null);
             messageRepository.save(msg);
+
+            wsPublisher.readMessage(msg);
         }
         return msg;
     }
@@ -111,5 +119,6 @@ public class ChatService {
             throw new AccessDeniedException("You are not allowed to delete this message!");
         }
             messageRepository.delete(msg);
+            wsPublisher.deleteMessage(msg);
     }
 }
