@@ -22,7 +22,7 @@ public class ChatWsPublisherService {
                 "/topic/conversations/" + conversationId,
                 toDto(msg, "NEW")
         );
-        System.out.println("💬 Sending notification WS for recipient " + msg.getRecipientId());
+
         messagingTemplate.convertAndSend(
                 "/topic/notifications/" + msg.getRecipientId(),
                 "New message!"
