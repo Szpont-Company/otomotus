@@ -17,4 +17,10 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
             @Param("user2") UUID user2,
             @Param("product") UUID productId
     );
+    @Query("""
+        SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END
+        FROM ConversationEntity c
+        WHERE c.id = :conversationId AND (c.buyerId = :userId OR c.sellerId = :userId)
+    """)
+    boolean existsByIdAndUser(@Param("conversationId") UUID conversationId, @Param("userId") UUID userId);
 }
