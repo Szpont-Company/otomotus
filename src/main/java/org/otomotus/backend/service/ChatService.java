@@ -3,14 +3,19 @@ package org.otomotus.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.otomotus.backend.entity.ConversationEntity;
 import org.otomotus.backend.entity.MessageEntity;
+import org.otomotus.backend.entity.UserEntity;
 import org.otomotus.backend.exception.ResourceNotFoundException;
 import org.otomotus.backend.repository.ConversationRepository;
 import org.otomotus.backend.repository.MessageRepository;
+import org.otomotus.backend.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -20,6 +25,8 @@ public class ChatService {
     private final ConversationRepository conversationRepository;
     private final MailNotificationService mailNotificationService;
     private final ChatWsPublisherService wsPublisher;
+    private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public MessageEntity sendMessage(UUID senderId, UUID recipientId, UUID productId, String content) {
         ConversationEntity conversation = conversationRepository.findConversationBetweenUsers(senderId, recipientId, productId)
@@ -34,7 +41,8 @@ public class ChatService {
         MessageEntity saved = messageRepository.save(msg);
 
         mailNotificationService.notifyMessage(saved);
-        wsPublisher.newMessage(saved);
+
+        notifyUser(saved.getRecipientId(), saved, "NEW");
 
         return saved;
     }
@@ -68,11 +76,11 @@ public class ChatService {
         }
 
         msg.setMsgContent(content);
-        messageRepository.save(msg);
+        MessageEntity edited =  messageRepository.save(msg);
 
-        wsPublisher.editMessage(msg);
+        notifyUser(edited.getRecipientId(), edited, "UPDATE");
 
-        return msg;
+        return edited;
     }
 
     public MessageEntity markRead(UUID msgId, UUID userId) {
@@ -88,7 +96,7 @@ public class ChatService {
             msg.setReadTimestamp(LocalDateTime.now());
             messageRepository.save(msg);
 
-            wsPublisher.readMessage(msg);
+            notifyUser(msg.getRecipientId(), msg, "READ");
         }
         return msg;
     }
@@ -106,7 +114,7 @@ public class ChatService {
             msg.setReadTimestamp(null);
             messageRepository.save(msg);
 
-            wsPublisher.readMessage(msg);
+            notifyUser(msg.getRecipientId(), msg, "UNREAD");
         }
         return msg;
     }
@@ -118,7 +126,41 @@ public class ChatService {
         if(!msg.getSenderId().equals(userId)) {
             throw new AccessDeniedException("You are not allowed to delete this message!");
         }
+            UUID userID = msg.getRecipientId();
             messageRepository.delete(msg);
-            wsPublisher.deleteMessage(msg);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("deletedMessageId", msgId);
+            payload.put("content", "Message Deleted");
+            notifyUser(userID, payload, "DELETE");
+    }
+
+    private void notifyUser(UUID userId, Object payload, String type) {
+        userRepository.findById(userId).ifPresent(user -> {
+
+            Object objectToSend = payload;
+
+            if (payload instanceof MessageEntity) {
+                MessageEntity msg = (MessageEntity) payload;
+                Map<String, Object> map = new HashMap<>();
+                map.put("type", type);
+
+                map.put("id", msg.getId());
+                map.put("senderId", msg.getSenderId());
+                map.put("recipientId", msg.getRecipientId());
+                map.put("msgContent", msg.getMsgContent());
+                map.put("timestamp", msg.getTimestamp());
+                map.put("editedTimestamp", msg.getEditedTimestamp());
+                map.put("read", msg.isRead());
+                map.put("readTimestamp", msg.getReadTimestamp());
+                map.put("conversationId", msg.getConversationId());
+
+                objectToSend = map;
+            }
+            messagingTemplate.convertAndSendToUser(
+                    user.getUsername(),
+                    "/queue/messages",
+                    objectToSend
+            );
+        });
     }
 }
