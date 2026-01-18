@@ -11,9 +11,11 @@ import org.otomotus.backend.exception.ResourceNotFoundException;
 import org.otomotus.backend.repository.AuctionImageRepository;
 import org.otomotus.backend.repository.AuctionRepository;
 import org.otomotus.backend.service.AuctionService;
+import org.otomotus.backend.service.ContractService;
 import org.otomotus.backend.service.ImageStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -30,6 +32,7 @@ public class AuctionController {
 
     private final AuctionService auctionService;
     private final ImageStorageService imageStorageService;
+    private final ContractService contractService;
 
     private final AuctionRepository auctionRepository;
     private final AuctionImageRepository auctionImageRepository;
@@ -92,5 +95,18 @@ public class AuctionController {
         auctionImageRepository.save(imageEntity);
 
         return ResponseEntity.ok("Photo saved: " + fileName);
+    }
+
+    @GetMapping("/{id}/contract")
+    public ResponseEntity<byte[]> generateContract(@PathVariable UUID id, Authentication authentication) {
+        byte[] pdfBytes = contractService.generateCarSaleContract(id, authentication.getName());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=umowa_" + id + ".pdf");
+        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 }
