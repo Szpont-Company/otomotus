@@ -24,7 +24,6 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
     private final MailNotificationService mailNotificationService;
-    private final ChatWsPublisherService wsPublisher;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
