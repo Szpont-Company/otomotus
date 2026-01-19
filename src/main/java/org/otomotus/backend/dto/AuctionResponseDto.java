@@ -1,0 +1,28 @@
+package org.otomotus.backend.dto;
+
+import lombok.*;
+import org.otomotus.backend.config.AuctionStatus;
+import org.otomotus.backend.config.FuelType;
+import org.otomotus.backend.config.TransmissionType;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class AuctionResponseDto {
+    private UUID id;
+    private String title;
+    private BigDecimal price;
+    private String location;
+    private String imageUrl;
+    private AuctionStatus status;
+    private LocalDateTime createdAt;
+
+    private String brand;
+    private String model;
+    private int productionYear;
+    private int mileage;
+    private FuelType fuelType;
+    private TransmissionType transmissionType;
+}
