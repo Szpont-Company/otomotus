@@ -45,11 +45,13 @@ public class AuctionService {
         return auctionMapper.toDto(auctionRepository.save(auction));
     }
 
+    @Transactional(readOnly = true)
     public Page<AuctionResponseDto> getAllActiveAuctions(Pageable pageable) {
         return auctionRepository.findAllByStatus(AuctionStatus.ACTIVE, pageable)
                 .map(auctionMapper::toDto);
     }
 
+    @Transactional(readOnly = true)
     public List<AuctionResponseDto> getUserAuctions(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -59,6 +61,7 @@ public class AuctionService {
                 .toList();
     }
 
+    @Transactional
     public AuctionResponseDto getAuctionDetails(UUID id) {
         AuctionEntity auction = auctionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));

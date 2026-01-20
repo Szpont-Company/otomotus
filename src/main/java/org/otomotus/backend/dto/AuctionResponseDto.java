@@ -4,9 +4,9 @@ import lombok.*;
 import org.otomotus.backend.config.AuctionStatus;
 import org.otomotus.backend.config.FuelType;
 import org.otomotus.backend.config.TransmissionType;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -15,7 +15,7 @@ public class AuctionResponseDto {
     private String title;
     private BigDecimal price;
     private String location;
-    private String imageUrl;
+    private List<String> imageUrls;
     private AuctionStatus status;
     private LocalDateTime createdAt;
 
@@ -25,4 +25,9 @@ public class AuctionResponseDto {
     private int mileage;
     private FuelType fuelType;
     private TransmissionType transmissionType;
+
+    private UUID sellerId;
+
+    private Integer enginePower;
+    private Integer engineCapacity;
 }
