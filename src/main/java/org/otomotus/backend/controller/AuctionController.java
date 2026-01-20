@@ -15,6 +15,7 @@ import org.otomotus.backend.service.ContractService;
 import org.otomotus.backend.service.ImageStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -128,8 +129,10 @@ public class AuctionController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-
-        return auctionService.filterAuctions(brand, model, minYear, maxYear, minPrice, maxPrice, page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir)
+    {
+        return auctionService.filterAuctions(brand, model, minYear, maxYear, minPrice, maxPrice, page, size, sortBy, sortDir);
     }
 }

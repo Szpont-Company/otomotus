@@ -147,13 +147,19 @@ public class AuctionService {
     public Page<AuctionResponseDto> filterAuctions(String brand, String model,
                                                    Integer minYear, Integer maxYear,
                                                    BigDecimal minPrice, BigDecimal maxPrice,
-                                                   int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+                                                   int page, int size,
+                                                   String sortBy,
+                                                   String sortDir) {
+        Sort sort = Sort.by(sortBy != null ? sortBy : "createdAt");
+        sort = "desc".equalsIgnoreCase(sortDir) ? sort.descending() : sort.ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
         Page<AuctionEntity> auctions = auctionRepository.findAll(
                 AuctionSpecification.filter(brand, model, minYear, maxYear, minPrice, maxPrice),
                 pageable);
 
         return auctions.map(auctionMapper::toDto);
     }
+
 
 }
