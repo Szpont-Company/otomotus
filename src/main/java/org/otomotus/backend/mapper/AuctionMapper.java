@@ -20,6 +20,10 @@ public interface AuctionMapper {
     @Mapping(target = "transmissionType", source = "car.transmission")
     @Mapping(target = "sellerId", source = "seller.id")
     @Mapping(target = "imageUrls", source = "images")
+    @Mapping(target = "sellerFirstName", source = "seller.firstName")
+    @Mapping(target = "sellerLastName", source = "seller.lastName")
+    @Mapping(target = "sellerRegistrationDate", source = "seller.createdAt")
+
     AuctionResponseDto toDto(AuctionEntity entity);
 
     CarEntity toCarEntity(AuctionCreateRequestDto dto);
