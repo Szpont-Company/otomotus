@@ -15,7 +15,6 @@ import org.otomotus.backend.service.ContractService;
 import org.otomotus.backend.service.ImageStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
