@@ -12,6 +12,7 @@ import org.otomotus.backend.exception.ResourceNotFoundException;
 import org.otomotus.backend.mapper.AuctionMapper;
 import org.otomotus.backend.repository.AuctionRepository;
 import org.otomotus.backend.repository.UserRepository;
+import org.otomotus.backend.specification.AuctionSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -140,6 +142,18 @@ public class AuctionService {
                 .engineCapacity(a.getCar().getEngineCapacity())
                 .build()
         );
+    }
+
+    public Page<AuctionResponseDto> filterAuctions(String brand, String model,
+                                                   Integer minYear, Integer maxYear,
+                                                   BigDecimal minPrice, BigDecimal maxPrice,
+                                                   int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<AuctionEntity> auctions = auctionRepository.findAll(
+                AuctionSpecification.filter(brand, model, minYear, maxYear, minPrice, maxPrice),
+                pageable);
+
+        return auctions.map(auctionMapper::toDto);
     }
 
 }

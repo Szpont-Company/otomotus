@@ -14,9 +14,7 @@ import org.otomotus.backend.service.AuctionService;
 import org.otomotus.backend.service.ContractService;
 import org.otomotus.backend.service.ImageStorageService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -118,5 +117,19 @@ public class AuctionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return auctionService.searchAuctions(keyword, page, size);
+    }
+
+    @GetMapping("/filter")
+    public Page<AuctionResponseDto> filterAuctions(
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) Integer minYear,
+            @RequestParam(required = false) Integer maxYear,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        return auctionService.filterAuctions(brand, model, minYear, maxYear, minPrice, maxPrice, page, size);
     }
 }

@@ -5,13 +5,14 @@ import org.otomotus.backend.entity.AuctionEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
 
-public interface AuctionRepository extends JpaRepository<AuctionEntity, UUID> {
+public interface AuctionRepository extends JpaRepository<AuctionEntity, UUID>, JpaSpecificationExecutor<AuctionEntity> {
     Page<AuctionEntity> findAllByStatus(AuctionStatus status, Pageable pageable);
 
     List<AuctionEntity> findAllBySellerId(UUID sellerId);
@@ -20,4 +21,6 @@ public interface AuctionRepository extends JpaRepository<AuctionEntity, UUID> {
             "WHERE LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(a.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<AuctionEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+
 }
