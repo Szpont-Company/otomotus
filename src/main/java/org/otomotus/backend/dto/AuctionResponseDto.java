@@ -4,8 +4,6 @@ import lombok.*;
 import org.otomotus.backend.config.AuctionStatus;
 import org.otomotus.backend.config.FuelType;
 import org.otomotus.backend.config.TransmissionType;
-import org.otomotus.backend.entity.AuctionImageEntity;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
