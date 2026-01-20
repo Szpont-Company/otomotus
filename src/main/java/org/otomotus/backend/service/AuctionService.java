@@ -13,7 +13,9 @@ import org.otomotus.backend.mapper.AuctionMapper;
 import org.otomotus.backend.repository.AuctionRepository;
 import org.otomotus.backend.repository.UserRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -114,4 +116,30 @@ public class AuctionService {
 
         return auctionMapper.toDto(auctionRepository.save(auction));
     }
+
+    public Page<AuctionResponseDto> searchAuctions(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<AuctionEntity> auctions = auctionRepository.searchByKeyword(keyword, pageable);
+
+        return auctions.map(a -> AuctionResponseDto.builder()
+                .id(a.getId())
+                .title(a.getTitle())
+                .price(a.getPrice())
+                .location(a.getLocation())
+                .imageUrls(a.getImages().stream().map(img -> img.getImageUrl()).toList())
+                .status(a.getStatus())
+                .createdAt(a.getCreatedAt())
+                .brand(a.getCar().getBrand())
+                .model(a.getCar().getModel())
+                .productionYear(a.getCar().getProductionYear())
+                .mileage(a.getCar().getMileage())
+                .fuelType(a.getCar().getFuelType())
+                .transmissionType(a.getCar().getTransmission())
+                .sellerId(a.getSeller().getId())
+                .enginePower(a.getCar().getEnginePower())
+                .engineCapacity(a.getCar().getEngineCapacity())
+                .build()
+        );
+    }
+
 }

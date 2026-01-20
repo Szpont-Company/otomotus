@@ -14,7 +14,9 @@ import org.otomotus.backend.service.AuctionService;
 import org.otomotus.backend.service.ContractService;
 import org.otomotus.backend.service.ImageStorageService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -108,5 +110,13 @@ public class AuctionController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(pdfBytes);
+    }
+
+    @GetMapping("/search")
+    public Page<AuctionResponseDto> searchAuctions(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return auctionService.searchAuctions(keyword, page, size);
     }
 }
