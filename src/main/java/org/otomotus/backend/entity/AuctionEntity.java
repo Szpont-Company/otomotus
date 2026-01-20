@@ -8,6 +8,8 @@ import org.otomotus.backend.config.AuctionStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -26,6 +28,10 @@ public class AuctionEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity seller;
+
+    @OneToMany(mappedBy = "auction", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<AuctionImageEntity> images = new ArrayList<>();
 
     @Column(nullable = false)
     private String title;
