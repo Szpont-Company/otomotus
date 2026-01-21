@@ -5,6 +5,7 @@ import org.otomotus.backend.config.AuctionStatus;
 import org.otomotus.backend.config.FuelType;
 import org.otomotus.backend.config.TransmissionType;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
