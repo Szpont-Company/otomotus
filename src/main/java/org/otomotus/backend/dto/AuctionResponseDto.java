@@ -19,6 +19,7 @@ public class AuctionResponseDto {
     private List<String> imageUrls;
     private AuctionStatus status;
     private LocalDateTime createdAt;
+    private String description;
 
     private String brand;
     private String model;
@@ -35,5 +36,6 @@ public class AuctionResponseDto {
     private String sellerFirstName;
     private String sellerLastName;
 
-    private LocalDate sellerRegistrationDate;
+    private int sellerSinceYear;
+    private int sellerListingCount;
 }
