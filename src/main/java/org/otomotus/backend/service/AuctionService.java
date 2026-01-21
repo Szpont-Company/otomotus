@@ -69,7 +69,14 @@ public class AuctionService {
         auction.setViewCount(auction.getViewCount() + 1);
         auctionRepository.save(auction);
 
-        return auctionMapper.toDto(auction);
+        AuctionResponseDto dto = auctionMapper.toDto(auction);
+
+        UserEntity seller = auction.getSeller();
+        if (seller != null) {
+            int listingsCount = auctionRepository.countBySellerId(seller.getId());
+            dto.setSellerListingCount(listingsCount);
+        }
+        return dto;
     }
 
     @Transactional

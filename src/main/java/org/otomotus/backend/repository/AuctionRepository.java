@@ -11,5 +11,6 @@ import java.util.UUID;
 public interface AuctionRepository extends JpaRepository<AuctionEntity, UUID> {
     Page<AuctionEntity> findAllByStatus(AuctionStatus status, Pageable pageable);
 
+    int countBySellerId(UUID sellerId);
     List<AuctionEntity> findAllBySellerId(UUID sellerId);
 }
