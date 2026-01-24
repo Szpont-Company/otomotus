@@ -3,6 +3,7 @@ package org.otomotus.backend.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.otomotus.backend.auth.model.AuthUserDetails;
+import org.otomotus.backend.dto.ConversationListDto;
 import org.otomotus.backend.dto.MessageRequestDto;
 import org.otomotus.backend.entity.MessageEntity;
 import org.otomotus.backend.service.ChatService;
@@ -29,6 +30,11 @@ public class ChatController {
                 request.getContent()
         );
         return ResponseEntity.ok(msg);
+    }
+
+    @GetMapping("/conversations/my")
+    public ResponseEntity<List<ConversationListDto>> getConversations(@AuthenticationPrincipal AuthUserDetails user) {
+        return ResponseEntity.ok(chatSrv.getUserConversations(user.getId()));
     }
 
     @GetMapping("/conversation/{conversationId}/messages")

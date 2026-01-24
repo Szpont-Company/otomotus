@@ -1,9 +1,9 @@
 package org.otomotus.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.otomotus.backend.dto.ConversationListDto;
 import org.otomotus.backend.entity.ConversationEntity;
 import org.otomotus.backend.entity.MessageEntity;
-import org.otomotus.backend.entity.UserEntity;
 import org.otomotus.backend.exception.ResourceNotFoundException;
 import org.otomotus.backend.repository.ConversationRepository;
 import org.otomotus.backend.repository.MessageRepository;
@@ -26,6 +26,7 @@ public class ChatService {
     private final MailNotificationService mailNotificationService;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    UserService userService;
 
     public MessageEntity sendMessage(UUID senderId, UUID recipientId, UUID productId, String content) {
         ConversationEntity conversation = conversationRepository.findConversationBetweenUsers(senderId, recipientId, productId)
@@ -162,4 +163,9 @@ public class ChatService {
             );
         });
     }
+
+    public List<ConversationListDto> getUserConversations(UUID id) {
+        return conversationRepository.findConversationsForUser(id);
+    }
 }
+
