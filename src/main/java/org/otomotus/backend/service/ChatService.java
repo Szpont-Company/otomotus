@@ -18,6 +18,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Serwis dla zarządzania wiadomościami i rozmowami między użytkownikami.
+ * <p>
+ * Obsługuje wysyłanie, edytowanie, usuwanie wiadomości oraz zarządzanie
+ * statusem odczytania. Integruje się z WebSocket do powiadomień w czasie rzeczywistym.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -26,8 +36,20 @@ public class ChatService {
     private final MailNotificationService mailNotificationService;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    UserService userService;
 
+    /**
+     * Wysyła wiadomość od jednego użytkownika do drugiego.
+     * <p>
+     * Jeśli rozmowa między użytkownikami jeszcze nie istnieje, tworzy nową.
+     * Wysyła powiadomienie email i powiadomienie WebSocket do odbiorcy.
+     * </p>
+     *
+     * @param senderId ID wysyłającego
+     * @param recipientId ID odbiorcy
+     * @param productId ID produktu, do którego odnosi się wiadomość
+     * @param content treść wiadomości
+     * @return wysłana wiadomość
+     */
     public MessageEntity sendMessage(UUID senderId, UUID recipientId, UUID productId, String content) {
         ConversationEntity conversation = conversationRepository.findConversationBetweenUsers(senderId, recipientId, productId)
                 .orElseGet(() -> createNewConversation(senderId, recipientId, productId));
@@ -56,6 +78,16 @@ public class ChatService {
         return conversationRepository.save(conversation);
     }
 
+    /**
+     * Pobiera wszystkie wiadomości z danej rozmowy.
+     * Tylko uczestnicy rozmowy mają dostęp.
+     *
+     * @param conversationId ID rozmowy
+     * @param userId ID użytkownika żądającego
+     * @return lista wiadomości z rozmowy
+     * @throws ResourceNotFoundException jeśli rozmowa nie istnieje
+     * @throws AccessDeniedException jeśli użytkownik nie jest uczestnikiem rozmowy
+     */
     public List<MessageEntity> getConversationMessages(UUID conversationId, UUID userId) {
         ConversationEntity conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found!"));
@@ -67,6 +99,17 @@ public class ChatService {
         return messageRepository.findAllByConversation_Id(conversationId);
     }
 
+    /**
+     * Edytuje treść wiadomości.
+     * Tylko autor wiadomości ma prawo ją edytować.
+     *
+     * @param msgId ID wiadomości
+     * @param content nowa treść
+     * @param userId ID użytkownika edytującego
+     * @return edytowana wiadomość
+     * @throws ResourceNotFoundException jeśli wiadomość nie istnieje
+     * @throws AccessDeniedException jeśli użytkownik nie jest autorem
+     */
     public MessageEntity editMessage(UUID msgId, String content, UUID userId) {
         MessageEntity msg = messageRepository.findById(msgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
@@ -83,6 +126,15 @@ public class ChatService {
         return edited;
     }
 
+    /**
+     * Oznacza wiadomość jako przeczytaną.
+     *
+     * @param msgId ID wiadomości
+     * @param userId ID użytkownika (odbiorcy)
+     * @return zaktualizowana wiadomość
+     * @throws ResourceNotFoundException jeśli wiadomość nie istnieje
+     * @throws AccessDeniedException jeśli użytkownik nie jest odbiorcą
+     */
     public MessageEntity markRead(UUID msgId, UUID userId) {
         MessageEntity msg = messageRepository.findById(msgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
@@ -101,6 +153,15 @@ public class ChatService {
         return msg;
     }
 
+    /**
+     * Oznacza wiadomość jako nieprzeczytaną.
+     *
+     * @param msgId ID wiadomości
+     * @param userId ID użytkownika (odbiorcy)
+     * @return zaktualizowana wiadomość
+     * @throws ResourceNotFoundException jeśli wiadomość nie istnieje
+     * @throws AccessDeniedException jeśli użytkownik nie jest odbiorcą
+     */
     public MessageEntity markUnread(UUID msgId, UUID userId) {
         MessageEntity msg = messageRepository.findById(msgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
@@ -119,6 +180,15 @@ public class ChatService {
         return msg;
     }
 
+    /**
+     * Usuwa wiadomość.
+     * Tylko autor wiadomości ma prawo ją usunąć.
+     *
+     * @param msgId ID wiadomości
+     * @param userId ID użytkownika usuwającego
+     * @throws ResourceNotFoundException jeśli wiadomość nie istnieje
+     * @throws AccessDeniedException jeśli użytkownik nie jest autorem
+     */
     public void deleteMessage(UUID msgId, UUID userId) {
         MessageEntity msg = messageRepository.findById(msgId)
                 .orElseThrow(() -> new ResourceNotFoundException("Message not found!"));
@@ -134,6 +204,16 @@ public class ChatService {
             notifyUser(userID, payload, "DELETE");
     }
 
+    /**
+     * Wysyła powiadomienie WebSocket do użytkownika.
+     * <p>
+     * Konwertuje wiadomość do formatu JSON i wysyła do konkretnego użytkownika.
+     * </p>
+     *
+     * @param userId ID użytkownika do powiadomienia
+     * @param payload dane do wysłania
+     * @param type typ powiadomienia (NEW, UPDATE, DELETE, READ, UNREAD)
+     */
     private void notifyUser(UUID userId, Object payload, String type) {
         userRepository.findById(userId).ifPresent(user -> {
 
@@ -164,6 +244,12 @@ public class ChatService {
         });
     }
 
+    /**
+     * Pobiera wszystkie rozmowy dla danego użytkownika.
+     *
+     * @param id ID użytkownika
+     * @return lista rozmów użytkownika
+     */
     public List<ConversationListDto> getUserConversations(UUID id) {
         return conversationRepository.findConversationsForUser(id);
     }

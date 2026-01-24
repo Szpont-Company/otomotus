@@ -10,7 +10,28 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repozytorium dla encji ConversationEntity.
+ * <p>
+ * Dostarcza metody dostępu do rozmów w bazie danych wraz z zaawansowanymi
+ * zapytaniami JPQL dla pobierania informacji o rozmowach.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 public interface ConversationRepository extends JpaRepository<ConversationEntity, UUID> {
+    /**
+     * Wyszukuje rozmowę między dwoma użytkownikami dotyczącą konkretnego produktu.
+     * <p>
+     * Rozmowa jest dwukierunkowa - zwraca wynik niezależnie od kolejności użytkowników.
+     * </p>
+     *
+     * @param user1 pierwszy użytkownik
+     * @param user2 drugi użytkownik
+     * @param productId identyfikator produktu
+     * @return Optional zawierający rozmowę, jeśli istnieje
+     */
     @Query("""
     SELECT c FROM ConversationEntity c
     WHERE (
@@ -26,6 +47,13 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
             @Param("product") UUID productId
     );
 
+    /**
+     * Sprawdza, czy użytkownik ma dostęp do danej rozmowy.
+     *
+     * @param conversationId identyfikator rozmowy
+     * @param userId identyfikator użytkownika
+     * @return true jeśli użytkownik jest uczestnikiem rozmowy
+     */
     @Query("""
         SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END
         FROM ConversationEntity c
@@ -33,6 +61,15 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
     """)
     boolean existsByIdAndUser(@Param("conversationId") UUID conversationId, @Param("userId") UUID userId);
 
+    /**
+     * Pobiera listę wszystkich rozmów użytkownika z ostatnią wiadomością i liczbą nieprzeczytanych.
+     * <p>
+     * Zwraca rozmowy posortowane chronologicznie z informacją o ostatniej wiadomości.
+     * </p>
+     *
+     * @param userId identyfikator użytkownika
+     * @return lista rozmów użytkownika
+     */
     @Query("""
     SELECT new org.otomotus.backend.dto.ConversationListDto(
         c.id,
@@ -57,6 +94,5 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
     GROUP BY c.id, c.productId, u.id, u.firstName, u.lastName, lm.msgContent, lm.timestamp
     """)
     List<ConversationListDto> findConversationsForUser(@Param("userId") UUID userId);
-
 
 }

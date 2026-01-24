@@ -9,6 +9,15 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca rozmowę między kupującym a sprzedawcą.
+ * <p>
+ * Rozmowa jest unikalna dla kombinacji kupującego, sprzedawcy i produktu.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter
 @Setter
 @Entity

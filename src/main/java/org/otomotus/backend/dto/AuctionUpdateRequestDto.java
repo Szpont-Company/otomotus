@@ -7,6 +7,16 @@ import org.otomotus.backend.config.TransmissionType;
 
 import java.math.BigDecimal;
 
+/**
+ * DTO dla żądania aktualizacji aukcji.
+ * <p>
+ * Zawiera pola, które mogą być zaktualizowane w istniejącej aukcji.
+ * Wszystkie pola są opcjonalne (mogą być null).
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AuctionUpdateRequestDto {
     private String brand;

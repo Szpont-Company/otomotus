@@ -7,6 +7,16 @@ import org.otomotus.backend.config.TransmissionType;
 
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca samochód.
+ * <p>
+ * Zawiera szczegóły techniczne samochodu takie jak marka, model,
+ * rok produkcji, parametry silnika itp.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Entity
 @Table(name = "cars")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

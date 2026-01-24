@@ -7,6 +7,15 @@ import org.otomotus.backend.config.UserRole;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca użytkownika aplikacji.
+ * <p>
+ * Zawiera dane autentykacji, informacje profilu oraz status weryfikacji konta.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Entity
 @Table(name = "users")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

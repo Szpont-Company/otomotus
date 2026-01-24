@@ -17,6 +17,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Kontroler REST API dla autentykacji i autoryzacji użytkowników.
+ * <p>
+ * Obsługuje rejestrację nowych użytkowników, logowanie, generowanie tokenów JWT
+ * oraz weryfikację adresów email.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor()

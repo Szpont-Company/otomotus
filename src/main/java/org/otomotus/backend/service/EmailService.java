@@ -6,6 +6,16 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+/**
+ * Serwis do wysyłania wiadomości email.
+ * <p>
+ * Obsługuje wysyłanie emaili weryfikacyjnych i powiadomień użytkowników.
+ * Operacje są asynchroniczne (@Async), aby nie blokować głównego wątku.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Service
 public class EmailService {
 

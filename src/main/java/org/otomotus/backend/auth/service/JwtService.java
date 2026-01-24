@@ -14,6 +14,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Serwis dla zarządzania tokenami JWT.
+ * <p>
+ * Obsługuje generowanie, walidację i ekstrakcję informacji z tokenów JWT.
+ * Tokeny są podpisane za pomocą sekretnego klucza i mają zdefiniowany czas wygaśnięcia.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Service
 public class JwtService {
 

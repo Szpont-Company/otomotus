@@ -9,6 +9,15 @@ import lombok.Setter;
 
 import java.util.UUID;
 
+/**
+ * DTO dla żądania wysłania wiadomości.
+ * <p>
+ * Zawiera dane wysłanej wiadomości oraz identyfikatory uczestników rozmowy.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter
 @Setter
 @NoArgsConstructor

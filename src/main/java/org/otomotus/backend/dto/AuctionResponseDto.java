@@ -10,6 +10,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * DTO dla odpowiedzi zawierającej dane aukcji.
+ * <p>
+ * Zawiera informacje o aukcji, samochodzie, cenie, sprzedawcy i zdjęciach.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AuctionResponseDto {
     private UUID id;

@@ -7,6 +7,16 @@ import org.otomotus.backend.config.TransmissionType;
 
 import java.math.BigDecimal;
 
+/**
+ * DTO dla żądania utworzenia nowej aukcji.
+ * <p>
+ * Zawiera dane samochodu oraz warunki sprzedaży. Wszystkie pola są walidowane
+ * na podstawie adnotacji @Valid.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AuctionCreateRequestDto {
     @NotBlank private String vin;

@@ -12,6 +12,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca aukcję samochodu.
+ * <p>
+ * Zawiera informacje o samochodzie, warunkach sprzedaży, sprzedawcy oraz
+ * metadane takie jak liczba wyświetleń, status i czas wygaśnięcia aukcji.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Entity
 @Table(name = "auctions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

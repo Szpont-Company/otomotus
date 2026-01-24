@@ -7,6 +7,15 @@ import org.otomotus.backend.dto.UserResponseDto;
 import org.otomotus.backend.dto.UserUpdateRequestDto;
 import org.otomotus.backend.entity.UserEntity;
 
+/**
+ * Mapper dla konwersji między encjami użytkowników a DTOs.
+ * <p>
+ * Wykorzystuje MapStruct do automatycznego mapowania pól między obiektami.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
     UserResponseDto toDto(UserEntity userEntity);

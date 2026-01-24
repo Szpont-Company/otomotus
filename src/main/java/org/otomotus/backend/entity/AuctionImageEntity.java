@@ -5,6 +5,15 @@ import lombok.*;
 
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca zdjęcie przypisane do aukcji.
+ * <p>
+ * Zawiera referencję do aukcji i URL do przechowanego zdjęcia.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Entity
 @Table(name = "auction_images")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
