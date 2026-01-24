@@ -170,6 +170,8 @@ public class UserService {
         user.setVerificationToken(null);
         userRepository.save(user);
 
+        emailService.sendWelcomeEmail(user.getEmail(), user.getUsername());
+
         return VerificationStatus.VERIFIED;
     }
 }

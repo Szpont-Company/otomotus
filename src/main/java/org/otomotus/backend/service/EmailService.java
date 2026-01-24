@@ -43,4 +43,28 @@ public class EmailService {
 
         mailSender.send(mailMessage);
     }
+
+    /**
+     * Wysyła email powitalny po pomyślnej aktywacji konta.
+     * <p>
+     * Metoda wywoływana po tym, jak użytkownik kliknie w link weryfikacyjny.
+     * </p>
+     *
+     * @param to adres email użytkownika
+     * @param username nazwa użytkownika
+     */
+    @Async
+    public void sendWelcomeEmail(String to, String username) {
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setTo(to);
+        mailMessage.setSubject("Witaj w Otomotus - Rejestracja zakończona pomyślnie");
+        mailMessage.setText("Cześć " + username + "!\n\n" +
+                "Twoje konto zostało pomyślnie aktywowane. Możesz teraz w pełni korzystać z serwisu Otomotus.\n" +
+                "Dziękujemy za dołączenie do naszej społeczności!\n\n" +
+                "Pozdrawiamy,\n" +
+                "Zespół Otomotus");
+        mailMessage.setFrom("kurde_3poczta_juz@onet.pl");
+
+        mailSender.send(mailMessage);
+    }
 }
