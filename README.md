@@ -200,8 +200,6 @@ server:
 ## 🚀 Uruchomienie projektu
 ---
 
-## 🚀 Uruchomienie projektu
-
 ### 1️⃣ Przygotowanie bazy danych
 
 Opcja A: MySQL lokalnie
