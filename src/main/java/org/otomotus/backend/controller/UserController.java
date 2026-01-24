@@ -1,10 +1,13 @@
 package org.otomotus.backend.controller;
 
+import org.otomotus.backend.auth.model.AuthUserDetails;
+import org.otomotus.backend.dto.UserCreateRequestDto;
 import org.otomotus.backend.dto.UserResponseDto;
 import org.otomotus.backend.dto.UserUpdateRequestDto;
 import org.otomotus.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +28,22 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal AuthUserDetails currentUser) {
+        return ResponseEntity.ok(userService.getById(currentUser.getId()));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<UserResponseDto> updateCurrentUser(
+            @AuthenticationPrincipal AuthUserDetails currentUser,
+            @RequestBody UserUpdateRequestDto dto
+    ) {
+        dto.setRole(null);
+        dto.setUsername(null);
+
+        return ResponseEntity.ok(userService.patch(currentUser.getId(), dto));
+    }
 
     /**
      * Konstruktor kontrolera z wstrzykniętym serwisem użytkowników.
