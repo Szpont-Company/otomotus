@@ -1,0 +1,194 @@
+@startuml Sequence Diagram - Komunikacja między Użytkownikami
+
+title Diagram Przepływu Sterowania\nScenariusz: Komunikacja Kupujący - Sprzedawca (WebSocket)
+
+actor "Kupujący" as Buyer
+participant "Browser\n(Kupujący)" as UI_B
+participant "WebSocket\nClient" as WS_B
+participant "WebSocket\nServer" as WSS
+participant "ChatController" as Controller
+participant "ChatService" as Service
+participant "MessageRepository" as RepoMsg
+participant "ConversationRepository" as RepoConv
+participant "UserRepository" as RepoUser
+participant "Database" as DB
+participant "WebSocket\nClient" as WS_S
+participant "Browser\n(Sprzedawca)" as UI_S
+actor "Sprzedawca" as Seller
+
+== Faza 1: Inicjalizacja Połączenia ==
+
+Buyer -> UI_B: Otwiera stronę aukcji
+UI_B -> UI_B: Pobiera aukcję z API
+UI_B -> Buyer: Wyświetla szczegóły\n+ przycisk "Kontakt"
+
+Buyer -> UI_B: Klika "Wyślij wiadomość"
+UI_B -> WS_B: Nawiązuje połączenie WebSocket
+WS_B -> WSS: CONNECT /ws\nAuthorization: Bearer {JWT}
+WSS -> WSS: Weryfikuje token JWT
+WSS --> WS_B: Connection established
+WS_B --> UI_B: ✓ Połączono
+
+note right of Buyer
+  WebSocket pozwala na
+  komunikację real-time
+  bez odświeżania strony
+end note
+
+== Równolegle: Sprzedawca też się łączy ==
+
+Seller -> UI_S: Sprawdza wiadomości
+UI_S -> WS_S: Nawiązuje połączenie WebSocket
+WS_S -> WSS: CONNECT /ws\nAuthorization: Bearer {JWT}
+WSS --> WS_S: Connection established
+
+== Faza 2: Wysłanie Pierwszej Wiadomości ==
+
+Buyer -> UI_B: Pisze wiadomość:\n"Czy auto jest dostępne?"
+
+UI_B -> Controller: POST /api/messages/send
+note right
+  MessageRequestDto:
+  - recipientId (ID sprzedawcy)
+  - productId (ID aukcji)
+  - content (treść)
+end note
+
+activate Controller
+Controller -> Service: sendMessage(senderId, recipientId,\nproductId, content)
+
+activate Service
+Service -> RepoUser: findById(senderId)
+RepoUser -> DB: SELECT * FROM users WHERE id = ?
+DB --> RepoUser: UserEntity (kupujący)
+RepoUser --> Service: sender
+
+Service -> RepoUser: findById(recipientId)
+RepoUser -> DB: SELECT * FROM users WHERE id = ?
+DB --> RepoUser: UserEntity (sprzedawca)
+RepoUser --> Service: recipient
+
+Service -> RepoConv: findConversationBetween\nUsers(senderId, recipientId, productId)
+RepoConv -> DB: SELECT * FROM conversations...
+
+alt Konwersacja istnieje
+    DB --> RepoConv: ConversationEntity
+    RepoConv --> Service: conversation
+else Nowa konwersacja
+    DB --> RepoConv: null
+    RepoConv --> Service: null
+    Service -> Service: Tworzy nową ConversationEntity
+    Service -> RepoConv: save(conversation)
+    RepoConv -> DB: INSERT INTO conversations
+    DB --> RepoConv: Saved conversation
+    RepoConv --> Service: conversation
+end
+
+Service -> Service: Tworzy MessageEntity:\n- sender, recipient\n- conversation\n- content\n- timestamp\n- isRead = false
+
+Service -> RepoMsg: save(message)
+RepoMsg -> DB: INSERT INTO messages
+DB --> RepoMsg: Saved MessageEntity
+RepoMsg --> Service: message
+
+Service --> Controller: MessageEntity
+deactivate Service
+Controller --> UI_B: 200 OK {message}
+deactivate Controller
+
+UI_B -> UI_B: Dodaje wiadomość do UI
+
+== Faza 3: Wysyłka przez WebSocket ==
+
+UI_B -> WS_B: Wysyła przez WebSocket
+WS_B -> WSS: SEND message\nto /app/chat.send
+
+activate WSS
+WSS -> WSS: Identyfikuje odbiorcę\n(recipientId ze sprzedawcy)
+
+WSS -> WS_S: BROADCAST do sprzedawcy\n/topic/messages/{userId}
+deactivate WSS
+
+WS_S -> UI_S: Odbiera nową wiadomość
+UI_S -> UI_S: Wyświetla powiadomienie
+UI_S -> UI_S: Odtwarza dźwięk (opcjonalnie)
+UI_S -> Seller: 🔔 "Nowa wiadomość od {username}"
+
+== Faza 4: Odpowiedź Sprzedawcy ==
+
+Seller -> UI_S: Pisze odpowiedź:\n"Tak, auto dostępne. Tel: 123-456-789"
+
+UI_S -> Controller: POST /api/messages/send
+Controller -> Service: sendMessage(sellerId, buyerId,\nproductId, content)
+
+Service -> Service: Proces analogiczny\njak wcześniej...
+
+Service -> RepoMsg: save(replyMessage)
+RepoMsg -> DB: INSERT INTO messages
+DB --> RepoMsg: Saved message
+RepoMsg --> Service: replyMessage
+
+Service --> Controller: MessageEntity
+Controller --> UI_S: 200 OK
+
+UI_S -> WS_S: Wysyła przez WebSocket
+WS_S -> WSS: SEND to /app/chat.send
+WSS -> WS_B: BROADCAST do kupującego
+WS_B -> UI_B: Odbiera odpowiedź
+UI_B -> Buyer: 🔔 "Nowa odpowiedź od sprzedawcy"
+
+== Faza 5: Oznaczenie jako Przeczytane ==
+
+Buyer -> UI_B: Otwiera rozmowę
+UI_B -> Controller: PATCH /api/messages/{msgId}/read
+activate Controller
+Controller -> Service: markAsRead(msgId, userId)
+activate Service
+
+Service -> RepoMsg: findById(msgId)
+RepoMsg -> DB: SELECT * FROM messages WHERE id = ?
+DB --> RepoMsg: MessageEntity
+RepoMsg --> Service: message
+
+alt Użytkownik jest odbiorcą
+    Service -> Service: message.setIsRead(true)
+    Service -> RepoMsg: save(message)
+    RepoMsg -> DB: UPDATE messages SET is_read = true
+    DB --> RepoMsg: OK
+    RepoMsg --> Service: updatedMessage
+    Service --> Controller: MessageEntity
+    deactivate Service
+    Controller --> UI_B: 200 OK
+    deactivate Controller
+    UI_B -> UI_B: Usuwa oznaczenie "nieprzeczytane"
+else Użytkownik NIE jest odbiorcą
+    Service --> Controller: 403 Forbidden
+    Controller --> UI_B: Błąd
+end
+
+== Faza 6: Historia Konwersacji ==
+
+Buyer -> UI_B: Przegląda wiadomości
+UI_B -> Controller: GET /api/messages/conversation/{convId}/messages
+Controller -> Service: getConversationMessages(convId, userId)
+
+Service -> RepoMsg: findByConversationId(convId)
+RepoMsg -> DB: SELECT * FROM messages\nWHERE conversation_id = ?\nORDER BY timestamp ASC
+DB --> RepoMsg: List<MessageEntity>
+RepoMsg --> Service: messages
+
+Service -> Service: Weryfikuje uprawnienia\n(czy user jest uczestnikiem)
+
+alt Użytkownik jest uczestnikiem
+    Service --> Controller: List<MessageEntity>
+    Controller --> UI_B: 200 OK [messages]
+    UI_B -> Buyer: Wyświetla całą historię
+else Użytkownik NIE jest uczestnikiem
+    Service --> Controller: 403 Forbidden
+    Controller --> UI_B: Błąd
+    UI_B -> Buyer: "Brak dostępu"
+end
+
+
+
+@enduml

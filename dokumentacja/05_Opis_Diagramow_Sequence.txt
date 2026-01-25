@@ -1,0 +1,519 @@
+================================================================================
+              OPIS DIAGRAMÓW PRZEPŁYWU STEROWANIA (SEQUENCE DIAGRAMS)
+================================================================================
+
+Data utworzenia: 25.01.2026
+Wersja: 1.0
+
+================================================================================
+1. DIAGRAM: UTWORZENIE I PUBLIKACJA AUKCJI
+   (Plik: 03_Sequence_Diagram_Utworzenie_Aukcji.puml)
+================================================================================
+
+SCENARIUSZ:
+-----------
+Sprzedawca loguje się do systemu i tworzy nową aukcję sprzedaży samochodu,
+przesyła zdjęcia, a następnie publikuje ogłoszenie.
+
+AKTORZY:
+--------
+• Sprzedawca (Seller) - osoba sprzedająca samochód
+• System Otomotus - aplikacja backend
+
+KOMPONENTY ZAANGAŻOWANE:
+-------------------------
+• Frontend (Browser/UI) - interfejs użytkownika
+• API Gateway - punkt wejścia REST API
+• JWT Filter - filtr autoryzacyjny
+• AuctionController - kontroler obsługujący żądania
+• AuctionService - logika biznesowa aukcji
+• AuctionRepository - dostęp do danych aukcji
+• UserRepository - dostęp do danych użytkowników
+• ImageStorageService - zarządzanie plikami
+• Database - warstwa persystencji
+
+FAZY PROCESU:
+-------------
+
+FAZA 1: AUTORYZACJA (Kroki 1-3)
+--------------------------------
+Cel: Uwierzytelnienie użytkownika i uzyskanie tokenu JWT
+
+Przebieg:
+1. Sprzedawca wprowadza dane logowania (username, password)
+2. Frontend wysyła POST /api/auth/login
+3. System weryfikuje dane i zwraca token JWT
+4. Token jest zapisywany w localStorage przeglądarki
+
+Token JWT zawiera:
+• Username (identyfikator użytkownika)
+• Role (USER/ADMIN)
+• Expiration time (czas wygaśnięcia, typowo 24h)
+
+Możliwe błędy:
+• 401 Unauthorized - nieprawidłowe dane logowania
+• 403 Forbidden - konto nieaktywne
+
+FAZA 2: PRZYGOTOWANIE DANYCH (Kroki 4-5)
+-----------------------------------------
+Cel: Zebranie wszystkich wymaganych informacji o pojeździe
+
+Użytkownik wypełnia formularz zawierający:
+
+Dane pojazdu (CarEntity):
+• VIN (numer identyfikacyjny)
+• Marka, model, generacja
+• Rok produkcji
+• Przebieg (km)
+• Pojemność silnika (ccm)
+• Moc silnika (KM)
+• Rodzaj paliwa (PETROL/DIESEL/ELECTRIC/HYBRID)
+• Skrzynia biegów (MANUAL/AUTOMATIC)
+• Kolor
+
+Dane aukcji (AuctionEntity):
+• Tytuł ogłoszenia
+• Opis (opcjonalny)
+• Cena (wymagana)
+• Lokalizacja
+• Czy cena negocjowana (boolean)
+• Numer telefonu
+
+Walidacja:
+Frontend wykonuje wstępną walidację (wymagane pola, format VIN, etc.)
+
+FAZA 3: UPLOAD ZDJĘĆ (Kroki 6-15)
+----------------------------------
+Cel: Przesłanie i zapisanie zdjęć pojazdu
+
+Proces dla każdego zdjęcia:
+1. Użytkownik wybiera plik (JPG, PNG, max 10MB)
+2. Frontend wysyła POST /api/auctions/{tempId}/images jako multipart/form-data
+3. JWT Filter weryfikuje token
+4. Controller przekazuje plik do ImageStorageService
+5. Service generuje unikalną nazwę: UUID_original_name.jpg
+6. Plik zapisywany w katalogu: /uploads/
+7. Tworzony rekord AuctionImageEntity w bazie
+8. Frontend pokazuje miniaturę uploadowanego zdjęcia
+
+Możliwe błędy:
+• 413 Payload Too Large - plik za duży
+• 415 Unsupported Media Type - nieprawidłowy format
+• 401 Unauthorized - brak lub nieprawidłowy token
+
+Zabezpieczenia:
+• Walidacja typu MIME
+• Limit rozmiaru pliku
+• Sanityzacja nazwy pliku
+• Przypisanie do użytkownika
+
+FAZA 4: UTWORZENIE AUKCJI (Kroki 16-35)
+----------------------------------------
+Cel: Zapisanie aukcji w bazie danych
+
+Szczegółowy przebieg:
+
+1. Frontend wysyła POST /api/auctions z obiektem AuctionCreateRequestDto
+
+2. API Gateway przekazuje request do JWT Filter
+
+3. JWT Filter dekoduje i weryfikuje token:
+   - Sprawdza podpis cyfrowy
+   - Sprawdza expiration time
+   - Ekstraktuje username i role
+
+4. Jeśli token nieprawidłowy:
+   → 401 Unauthorized
+   → Frontend przekierowuje do logowania
+
+5. Jeśli token prawidłowy:
+   Request trafia do AuctionController.createAuction()
+
+6. Controller deleguje do AuctionService
+
+7. Service wyszukuje użytkownika:
+   UserRepository.findByUsername(username)
+
+8. Jeśli użytkownik nie znaleziony:
+   → ResourceNotFoundException
+   → 404 Not Found
+
+9. Service mapuje DTO na encje:
+   - AuctionCreateRequestDto → CarEntity
+   - AuctionCreateRequestDto → AuctionEntity
+
+10. Service ustawia dodatkowe pola:
+    • auction.setSeller(user) - powiązanie ze sprzedawcą
+    • auction.setStatus(ACTIVE) - status aktywny
+    • auction.setExpiresAt(LocalDateTime.now().plusDays(30)) - wygasa za 30 dni
+    • auction.setViewCount(0) - licznik wyświetleń
+    • auction.setPromoted(false) - nie promowane
+
+11. Service zapisuje do bazy:
+    AuctionRepository.save(auction)
+
+12. Database wykonuje transakcję:
+    BEGIN TRANSACTION
+    INSERT INTO cars (...) VALUES (...)
+    INSERT INTO auctions (...) VALUES (...)
+    COMMIT
+
+13. Hibernate zwraca encję z wygenerowanym ID (UUID)
+
+14. Service mapuje AuctionEntity → AuctionResponseDto
+
+15. Controller zwraca 200 OK z DTO
+
+16. Frontend pokazuje sukces i przekierowuje na stronę aukcji
+
+Transakcyjność:
+• Cała operacja odbywa się w jednej transakcji (@Transactional)
+• Jeśli którykolwiek krok się nie powiedzie, następuje ROLLBACK
+• Dane Car i Auction są zapisywane atomowo
+
+FAZA 5: WERYFIKACJA (Kroki 36-45)
+----------------------------------
+Cel: Sprawdzenie poprawności utworzonej aukcji
+
+1. Sprzedawca klika link do swojej aukcji
+2. Frontend wysyła GET /api/auctions/{id}
+3. System pobiera aukcję z bazy
+4. System inkrementuje licznik wyświetleń (viewCount++)
+5. System dodaje statystyki sprzedawcy (liczba ogłoszeń)
+6. Frontend wyświetla pełne szczegóły
+
+Sprzedawca widzi:
+• Wszystkie dane pojazdu
+• Przesłane zdjęcia
+• Liczbę wyświetleń = 1
+• Status: ACTIVE
+• Przyciski: "Edytuj", "Usuń"
+
+MECHANIZMY BEZPIECZEŃSTWA:
+--------------------------
+1. Autoryzacja JWT na każdym kroku
+2. Walidacja danych wejściowych (@Valid annotations)
+3. Sprawdzanie uprawnień (czy user jest właścicielem)
+4. Transakcje zapewniające spójność danych
+5. Hashowanie plików (UUID) zapobiega konfliktom
+
+WYDAJNOŚĆ:
+----------
+• Lazy loading relacji (ManyToOne, OneToMany)
+• Eager loading tylko dla Car (potrzebne od razu)
+• Batch insert dla zdjęć
+• Indeksy na kolumnach: seller_id, status, created_at
+
+================================================================================
+2. DIAGRAM: KOMUNIKACJA MIĘDZY UŻYTKOWNIKAMI (WebSocket)
+   (Plik: 04_Sequence_Diagram_Komunikacja.puml)
+================================================================================
+
+SCENARIUSZ:
+-----------
+Kupujący kontaktuje się ze sprzedawcą w sprawie aukcji. Wykorzystywana jest
+technologia WebSocket dla komunikacji w czasie rzeczywistym.
+
+AKTORZY:
+--------
+• Kupujący (Buyer) - osoba zainteresowana zakupem
+• Sprzedawca (Seller) - właściciel aukcji
+
+KOMPONENTY ZAANGAŻOWANE:
+-------------------------
+• Browser (UI) - interfejs użytkownika dla obu stron
+• WebSocket Client - klient WS w przeglądarce
+• WebSocket Server - serwer STOMP/SockJS
+• ChatController - kontroler wiadomości
+• ChatService - logika biznesowa czatu
+• MessageRepository - przechowywanie wiadomości
+• ConversationRepository - przechowywanie konwersacji
+• UserRepository - dane użytkowników
+• Database - warstwa persystencji
+
+FAZY PROCESU:
+-------------
+
+FAZA 1: INICJALIZACJA POŁĄCZENIA (Kroki 1-10)
+----------------------------------------------
+Cel: Nawiązanie połączenia WebSocket z serwerem
+
+Przebieg dla Kupującego:
+1. Kupujący otwiera stronę aukcji
+2. Frontend pobiera dane aukcji przez REST API
+3. Wyświetlany jest przycisk "Kontakt ze sprzedawcą"
+4. Kupujący klika przycisk
+5. Frontend inicjuje połączenie WebSocket:
+   ws://localhost:8080/ws
+
+6. Wysyłany jest token JWT w headerze:
+   Authorization: Bearer eyJhbGc...
+
+7. WebSocket Server weryfikuje token:
+   • Dekoduje JWT
+   • Sprawdza ważność
+   • Ekstraktuje userId
+
+8. Jeśli token prawidłowy:
+   → Connection established
+   → Użytkownik przypisany do sesji WS
+
+9. Frontend otrzymuje potwierdzenie połączenia
+
+Równolegle - Sprzedawca:
+Analogiczny proces dla Sprzedawcy, który może być już zalogowany
+lub loguje się później.
+
+Protokół WebSocket:
+• Upgrade z HTTP na WS
+• Persistent connection (nie zamyka się po każdym message)
+• Dwukierunkowa komunikacja (full-duplex)
+• Niskie opóźnienia (<100ms)
+
+FAZA 2: WYSŁANIE PIERWSZEJ WIADOMOŚCI (Kroki 11-30)
+----------------------------------------------------
+Cel: Utworzenie konwersacji i wysłanie pierwszego komunikatu
+
+1. Kupujący pisze wiadomość w formularzu:
+   "Czy auto jest dostępne?"
+
+2. Frontend wysyła REST request:
+   POST /api/messages/send
+   Body: {
+     recipientId: "uuid-sprzedawcy",
+     productId: "uuid-aukcji",
+     content: "Czy auto jest dostępne?"
+   }
+
+3. ChatController odbiera request
+
+4. ChatService.sendMessage() wykonuje:
+
+   a) Weryfikacja nadawcy:
+      UserRepository.findById(senderId)
+
+   b) Weryfikacja odbiorcy:
+      UserRepository.findById(recipientId)
+
+   c) Sprawdzenie konwersacji:
+      ConversationRepository.findConversationBetweenUsers(
+        senderId, recipientId, productId
+      )
+
+      Jeśli konwersacja NIE istnieje:
+      → Tworzy nową ConversationEntity:
+         - participant1 = kupujący
+         - participant2 = sprzedawca
+         - auction = aukcja
+         - createdAt = now()
+      → Zapisuje w bazie
+
+   d) Utworzenie wiadomości:
+      MessageEntity:
+      - conversation = conversation
+      - sender = kupujący
+      - recipient = sprzedawca
+      - content = "Czy auto jest dostępne?"
+      - timestamp = now()
+      - isRead = false
+      - isEdited = false
+
+   e) Zapis do bazy:
+      MessageRepository.save(message)
+      Database wykonuje:
+      INSERT INTO messages (...) VALUES (...)
+
+5. Service zwraca zapisaną MessageEntity
+
+6. Controller zwraca 200 OK z obiektem message
+
+7. Frontend dodaje wiadomość do UI (bez odświeżania)
+
+Struktura ConversationEntity:
+• id (UUID)
+• participant1 (UserEntity)
+• participant2 (UserEntity)
+• auction (AuctionEntity) - kontekst rozmowy
+• lastMessageAt (timestamp ostatniej wiadomości)
+• createdAt
+
+Struktura MessageEntity:
+• id (UUID)
+• conversation (ConversationEntity)
+• sender (UserEntity)
+• recipient (UserEntity)
+• content (TEXT)
+• timestamp (LocalDateTime)
+• isRead (boolean)
+• isEdited (boolean)
+
+FAZA 3: WYSYŁKA PRZEZ WEBSOCKET (Kroki 31-37)
+----------------------------------------------
+Cel: Dostarczenie wiadomości w czasie rzeczywistym
+
+1. Frontend kupującego po otrzymaniu 200 OK
+   wysyła wiadomość przez WebSocket:
+
+   wsClient.send("/app/chat.send", {
+     messageId: "uuid-wiadomości",
+     recipientId: "uuid-sprzedawcy"
+   })
+
+2. WebSocket Server odbiera wiadomość
+
+3. Server identyfikuje odbiorcę (recipientId)
+
+4. Server sprawdza czy sprzedawca jest online (aktywna sesja WS)
+
+5. Jeśli sprzedawca ONLINE:
+   Server wysyła broadcast do jego sesji:
+
+   SEND /topic/messages/{sellerId}
+   Body: {
+     messageId: "uuid",
+     senderId: "uuid-kupującego",
+     senderName: "Jan Kowalski",
+     content: "Czy auto jest dostępne?",
+     timestamp: "2026-01-25T12:30:00"
+   }
+
+6. WebSocket Client sprzedawcy odbiera wiadomość
+
+7. Frontend sprzedawcy:
+   • Wyświetla powiadomienie
+   • Odtwarza dźwięk (opcjonalnie)
+   • Pokazuje badge z liczbą nieprzeczytanych
+   • Aktualizuje listę konwersacji
+
+8. Sprzedawca widzi:
+   🔔 "Nowa wiadomość od Jan Kowalski"
+
+Jeśli sprzedawca OFFLINE:
+• Wiadomość czeka w bazie
+• Zostanie pobrana przy następnym logowaniu
+• Opcjonalnie: wysłanie email notification
+
+FAZA 4: ODPOWIEDŹ SPRZEDAWCY (Kroki 38-48)
+-------------------------------------------
+Cel: Dwukierunkowa komunikacja
+
+1. Sprzedawca pisze odpowiedź:
+   "Tak, auto dostępne. Tel: 123-456-789"
+
+2. Proces analogiczny jak w Fazie 2-3:
+   • POST /api/messages/send
+   • Zapis w bazie
+   • Wysyłka przez WebSocket
+
+3. Kupujący odbiera wiadomość w czasie rzeczywistym
+
+4. Frontend kupującego wyświetla:
+   🔔 "Nowa odpowiedź od Adam Nowak"
+
+Optymalizacje:
+• Message nie jest duplikowane w bazie
+• WebSocket używany tylko do notyfikacji
+• Pełne dane pobierane przez REST w razie potrzeby
+
+FAZA 5: OZNACZENIE JAKO PRZECZYTANE (Kroki 49-60)
+--------------------------------------------------
+Cel: Tracking statusu wiadomości
+
+1. Kupujący otwiera rozmowę (lista wiadomości)
+
+2. Frontend automatycznie wysyła dla każdej nieprzeczytanej:
+   PATCH /api/messages/{messageId}/read
+
+3. ChatController.markAsRead(messageId, userId)
+
+4. ChatService weryfikuje:
+   • Czy wiadomość istnieje
+   • Czy userId = recipient.id (tylko odbiorca może oznaczyć)
+
+5. Jeśli OK:
+   message.setIsRead(true)
+   MessageRepository.save(message)
+   Database: UPDATE messages SET is_read = true WHERE id = ?
+
+6. Zwrot 200 OK
+
+7. Frontend usuwa oznaczenie "nieprzeczytane" (●)
+
+8. Opcjonalnie: WebSocket notyfikacja do nadawcy
+   "Twoja wiadomość została przeczytana" (✓✓)
+
+Status wiadomości (jak w WhatsApp):
+• ✓ - wysłana (saved in DB)
+• ✓✓ - dostarczona (recipient fetched)
+• ✓✓ (niebieskie) - przeczytana (isRead = true)
+
+FAZA 6: HISTORIA KONWERSACJI (Kroki 61-72)
+-------------------------------------------
+Cel: Dostęp do pełnej historii rozmowy
+
+1. Użytkownik przegląda wiadomości
+
+2. Frontend wysyła:
+   GET /api/messages/conversation/{conversationId}/messages
+
+3. ChatService.getConversationMessages(convId, userId)
+
+4. Service pobiera:
+   MessageRepository.findByConversationId(convId)
+   ORDER BY timestamp ASC
+
+5. Service weryfikuje uprawnienia:
+   Czy userId jest participant1 lub participant2 konwersacji?
+
+6. Jeśli NIE:
+   → 403 Forbidden
+   → "Brak dostępu do tej konwersacji"
+
+7. Jeśli TAK:
+   → 200 OK [List<MessageEntity>]
+
+8. Frontend renderuje chronologiczną listę wiadomości:
+   • Wiadomości własne po prawej
+   • Wiadomości partnera po lewej
+   • Timestamps
+   • Statusy przeczytania
+
+Paginacja (dla wydajności):
+• Domyślnie: ostatnie 50 wiadomości
+• "Load more" ładuje starsze w partiach po 50
+• Scroll do góry = automatyczne ładowanie
+
+MECHANIZMY BEZPIECZEŃSTWA:
+--------------------------
+1. JWT Token w WebSocket handshake
+2. Autoryzacja na poziomie konwersacji (tylko uczestnicy)
+3. Walidacja recipientId (zapobiega spoofing)
+4. XSS protection (sanityzacja HTML w content)
+5. Rate limiting (max 10 msg/min na użytkownika)
+6. Timeout dla nieaktywnych sesji WS (30 min)
+
+OBSŁUGA BŁĘDÓW:
+---------------
+• Utrata połączenia WS: automatyczne reconnect
+• Wiadomość niezapisana: retry mechanism
+• Odbiorca offline: queue w bazie + email
+• Konflikt edycji: last-write-wins
+
+WYDAJNOŚĆ:
+----------
+• WebSocket: stałe połączenie, brak overhead HTTP
+• Indeksy: conversation_id, sender_id, timestamp
+• Lazy loading starszych wiadomości
+• Redis cache dla online users (opcjonalnie)
+
+PRZYSZŁE ROZSZERZENIA:
+----------------------
+• Typing indicators ("Użytkownik pisze...")
+• Reakcje emoji na wiadomości
+• Załączniki (zdjęcia, dokumenty)
+• Grupowe rozmowy (więcej niż 2 osoby)
+• Video/audio calls
+
+================================================================================
+KONIEC DOKUMENTU
+================================================================================

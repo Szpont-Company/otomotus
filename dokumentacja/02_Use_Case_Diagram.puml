@@ -1,0 +1,176 @@
+@startuml Use-Case Diagram - Otomotus
+
+title System Aukcji Samochodów - Otomotus\nUse Case Diagram
+
+left to right direction
+
+' Definicja aktorów
+actor "Użytkownik\nNiezalogowany\n(Guest)" as Guest
+actor "Użytkownik\nZarejestrowany\n(User)" as User
+actor "Sprzedawca\n(Seller)" as Seller
+actor "Administrator\n(Admin)" as Admin
+actor "System Email" as Email
+actor "Generator PDF" as PDF
+
+' Relacje dziedziczenia między aktorami
+User <|-- Seller
+User <|-- Admin
+
+' Granica systemu
+rectangle "System Otomotus" {
+
+  ' ===== Use cases dla Gościa =====
+  package "Funkcje Publiczne" {
+    usecase "Przeglądaj aukcje" as UC1
+    usecase "Wyszukaj samochód" as UC2
+    usecase "Zobacz szczegóły aukcji" as UC3
+    usecase "Filtruj oferty" as UC4
+    usecase "Zarejestruj się" as UC5
+  }
+
+  ' ===== Use cases dla Uwierzytelniania =====
+  package "Autentykacja" {
+    usecase "Zaloguj się" as UC6
+    usecase "Weryfikuj email" as UC7
+    usecase "Odśwież token JWT" as UC8
+    usecase "Wyloguj się" as UC9
+  }
+
+  ' ===== Use cases dla Użytkownika =====
+  package "Zarządzanie Profilem" {
+    usecase "Edytuj profil" as UC10
+    usecase "Zobacz własny profil" as UC11
+    usecase "Zmień hasło" as UC12
+  }
+
+  package "Ulubione Aukcje" {
+    usecase "Dodaj do ulubionych" as UC13
+    usecase "Usuń z ulubionych" as UC14
+    usecase "Przeglądaj ulubione" as UC15
+  }
+
+  package "Komunikacja" {
+    usecase "Wyślij wiadomość" as UC16
+    usecase "Odbierz wiadomość" as UC17
+    usecase "Zobacz konwersacje" as UC18
+    usecase "Edytuj wiadomość" as UC19
+    usecase "Usuń wiadomość" as UC20
+    usecase "Oznacz jako przeczytane" as UC21
+  }
+
+  package "Opinie i Oceny" {
+    usecase "Wystaw opinię" as UC22
+    usecase "Zobacz opinie sprzedawcy" as UC23
+    usecase "Zobacz ranking" as UC24
+  }
+
+  ' ===== Use cases dla Sprzedawcy =====
+  package "Zarządzanie Aukcjami" {
+    usecase "Utwórz aukcję" as UC25
+    usecase "Dodaj zdjęcia" as UC26
+    usecase "Edytuj aukcję" as UC27
+    usecase "Usuń aukcję" as UC28
+    usecase "Zobacz własne aukcje" as UC29
+    usecase "Zmień status aukcji" as UC30
+    usecase "Zobacz statystyki" as UC31
+  }
+
+  package "Dokumenty" {
+    usecase "Generuj umowę sprzedaży" as UC32
+    usecase "Pobierz umowę PDF" as UC33
+  }
+
+  ' ===== Use cases dla Administratora =====
+  package "Panel Administracyjny" {
+    usecase "Zarządzaj użytkownikami" as UC34
+    usecase "Zobacz wszystkich użytkowników" as UC35
+    usecase "Usuń użytkownika" as UC36
+    usecase "Edytuj użytkownika" as UC37
+    usecase "Zmień rolę użytkownika" as UC38
+    usecase "Moderuj treści" as UC39
+  }
+}
+
+' ===== Relacje Gość -> Use Cases =====
+Guest --> UC1
+Guest --> UC2
+Guest --> UC3
+Guest --> UC4
+Guest --> UC5
+
+' ===== Relacje Użytkownik -> Use Cases =====
+User --> UC6
+User --> UC7
+User --> UC9
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+User --> UC19
+User --> UC20
+User --> UC21
+User --> UC22
+User --> UC23
+User --> UC24
+
+' Użytkownik dziedziczy wszystkie funkcje Gościa
+User --|> Guest
+
+' ===== Relacje Sprzedawca -> Use Cases =====
+Seller --> UC25
+Seller --> UC26
+Seller --> UC27
+Seller --> UC28
+Seller --> UC29
+Seller --> UC30
+Seller --> UC31
+Seller --> UC32
+Seller --> UC33
+
+' ===== Relacje Administrator -> Use Cases =====
+Admin --> UC34
+Admin --> UC35
+Admin --> UC36
+Admin --> UC37
+Admin --> UC38
+Admin --> UC39
+
+' ===== Relacje Include =====
+UC5 ..> UC7 : <<include>>
+UC25 ..> UC26 : <<include>>
+UC32 ..> UC33 : <<include>>
+
+' ===== Relacje Extend =====
+UC1 ..> UC4 : <<extend>>
+UC3 ..> UC13 : <<extend>>
+
+' ===== Relacje z systemami zewnętrznymi =====
+UC7 --> Email : "wysyła\nlink weryfikacyjny"
+UC32 --> PDF : "generuje\ndokument"
+
+note right of UC1
+  Domyślnie widoczne
+  są tylko aktywne aukcje
+end note
+
+note right of UC25
+  Wymagane: dane pojazdu,
+  VIN, zdjęcia, cena
+end note
+
+note bottom of UC22
+  Tylko po zakończonej
+  transakcji
+end note
+
+note right of UC34
+  Pełny dostęp CRUD
+  do wszystkich zasobów
+end note
+
+@enduml
