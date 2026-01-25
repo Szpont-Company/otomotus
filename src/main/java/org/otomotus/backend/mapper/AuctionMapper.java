@@ -29,6 +29,7 @@ public interface AuctionMapper {
     @Mapping(target = "transmissionType", source = "car.transmission")
     @Mapping(target = "sellerId", source = "seller.id")
     @Mapping(target = "imageUrls", source = "images")
+    @Mapping(target = "vin", source = "car.vin")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "sellerFirstName", source = "seller.firstName")
     @Mapping(target = "sellerLastName", source = "seller.lastName")

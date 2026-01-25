@@ -34,6 +34,7 @@ public class AuctionResponseDto {
     private String model;
     private int productionYear;
     private int mileage;
+    private String vin;
     private FuelType fuelType;
     private TransmissionType transmissionType;
 
