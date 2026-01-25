@@ -178,4 +178,41 @@ public class AuctionController {
                 .headers(headers)
                 .body(pdfBytes);
     }
+
+    /**
+     * Dodaje aukcję do ulubionych zalogowanego użytkownika.
+     *
+     * @param id identyfikator aukcji
+     * @param authentication dane uwierzytelniającego się użytkownika
+     * @return odpowiedź 200 OK
+     */
+    @PostMapping("/{id}/favorite")
+    public ResponseEntity<Void> addToFavorites(@PathVariable UUID id, Authentication authentication) {
+        auctionService.addToFavorites(id, authentication.getName());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Usuwa aukcję z ulubionych zalogowanego użytkownika.
+     *
+     * @param id identyfikator aukcji
+     * @param authentication dane uwierzytelniającego się użytkownika
+     * @return odpowiedź 200 OK
+     */
+    @DeleteMapping("/{id}/favorite")
+    public ResponseEntity<Void> removeFromFavorites(@PathVariable UUID id, Authentication authentication) {
+        auctionService.removeFromFavorites(id, authentication.getName());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Pobiera listę ulubionych aukcji zalogowanego użytkownika.
+     *
+     * @param authentication dane uwierzytelniającego się użytkownika
+     * @return lista ulubionych aukcji
+     */
+    @GetMapping("/favorites")
+    public ResponseEntity<List<AuctionResponseDto>> getFavoriteAuctions(Authentication authentication) {
+        return ResponseEntity.ok(auctionService.getFavoriteAuctions(authentication.getName()));
+    }
 }

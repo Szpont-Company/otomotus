@@ -186,4 +186,59 @@ public class AuctionService {
 
         return auctionMapper.toDto(auctionRepository.save(auction));
     }
+
+    /**
+     * Dodaje aukcję do ulubionych użytkownika.
+     *
+     * @param auctionId identyfikator aukcji
+     * @param username nazwa zalogowanego użytkownika
+     * @throws ResourceNotFoundException jeśli aukcja lub użytkownik nie zostanie znaleziony
+     */
+    @Transactional
+    public void addToFavorites(UUID auctionId, String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        AuctionEntity auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+
+        user.getFavoriteAuctions().add(auction);
+        userRepository.save(user);
+    }
+
+    /**
+     * Usuwa aukcję z ulubionych użytkownika.
+     *
+     * @param auctionId identyfikator aukcji
+     * @param username nazwa zalogowanego użytkownika
+     * @throws ResourceNotFoundException jeśli aukcja lub użytkownik nie zostanie znaleziony
+     */
+    @Transactional
+    public void removeFromFavorites(UUID auctionId, String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        AuctionEntity auction = auctionRepository.findById(auctionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Auction not found"));
+
+        user.getFavoriteAuctions().remove(auction);
+        userRepository.save(user);
+    }
+
+    /**
+     * Pobiera listę ulubionych aukcji użytkownika.
+     *
+     * @param username nazwa użytkownika
+     * @return lista ulubionych aukcji użytkownika
+     * @throws ResourceNotFoundException jeśli użytkownik nie zostanie znaleziony
+     */
+    @Transactional(readOnly = true)
+    public List<AuctionResponseDto> getFavoriteAuctions(String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return user.getFavoriteAuctions().stream()
+                .map(auctionMapper::toDto)
+                .toList();
+    }
 }

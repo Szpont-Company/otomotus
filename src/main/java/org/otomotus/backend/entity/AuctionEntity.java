@@ -9,7 +9,9 @@ import org.otomotus.backend.config.AuctionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -81,4 +83,8 @@ public class AuctionEntity {
     private LocalDateTime updatedAt;
 
     private LocalDateTime expiresAt;
+
+    @ManyToMany(mappedBy = "favoriteAuctions")
+    @Builder.Default
+    private Set<UserEntity> favoritedByUsers = new HashSet<>();
 }

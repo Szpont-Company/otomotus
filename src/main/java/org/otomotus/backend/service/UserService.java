@@ -69,7 +69,7 @@ public class UserService {
 
         userRepository.save(userEntity);
 
-        String verificationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+        String verificationUrl = "http://localhost:5173/activate?token=" + token;
         emailService.sendVerificationEmail(userEntity.getEmail(), verificationUrl);
 
         return userMapper.toDto(userEntity);

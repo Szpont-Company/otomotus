@@ -47,4 +47,6 @@ public class AuctionResponseDto {
 
     private int sellerSinceYear;
     private int sellerListingCount;
+
+    private boolean isFavorite;
 }
