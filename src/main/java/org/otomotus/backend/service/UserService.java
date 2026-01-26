@@ -19,6 +19,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Serwis dla zarządzania użytkownikami aplikacji.
+ * <p>
+ * Zawiera logikę biznesową dla rejestracji, weryfikacji, aktualizacji i usuwania użytkowników.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -29,6 +38,16 @@ public class UserService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Rejestruje nowego użytkownika w systemie.
+     * <p>
+     * Sprawdza unikalność email i nazwy użytkownika, koduje hasło i wysyła link weryfikacyjny.
+     * </p>
+     *
+     * @param registerRequest dane nowego użytkownika
+     * @return DTO zarejestrowanego użytkownika
+     * @throws UserAlreadyExistsException jeśli email lub login już istnieją
+     */
     public UserResponseDto registerUser(RegisterRequest registerRequest) {
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
             throw new UserAlreadyExistsException("Email already exists");
@@ -50,23 +69,46 @@ public class UserService {
 
         userRepository.save(userEntity);
 
-        String verificationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+        String verificationUrl = "http://localhost:5173/activate?token=" + token;
         emailService.sendVerificationEmail(userEntity.getEmail(), verificationUrl);
 
         return userMapper.toDto(userEntity);
     }
 
+    /**
+     * Pobiera listę wszystkich użytkowników w systemie.
+     *
+     * @return lista DTO wszystkich użytkowników
+     */
     public List<UserResponseDto> getAll() {
         return userRepository.findAll().stream()
                 .map(userMapper::toDto)
                 .toList();
     }
 
+    /**
+     * Pobiera użytkownika po ID.
+     *
+     * @param userId identyfikator użytkownika
+     * @return DTO użytkownika
+     * @throws RuntimeException jeśli użytkownik nie zostanie znaleziony
+     */
     public UserResponseDto getById(UUID userId) {
         return userMapper.toDto(userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found")));
     }
 
+    /**
+     * Aktualizuje dane użytkownika (operacja PATCH).
+     * <p>
+     * Selektywnie aktualizuje tylko pola, które zostały podane w żądaniu.
+     * </p>
+     *
+     * @param userId identyfikator użytkownika
+     * @param userUpdateRequest dane do zaktualizowania
+     * @return zaktualizowane DTO użytkownika
+     * @throws RuntimeException jeśli użytkownik nie zostanie znaleziony
+     */
     public UserResponseDto patch(UUID userId, UserUpdateRequestDto userUpdateRequest) {
         UserEntity userEntity = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -93,10 +135,24 @@ public class UserService {
         return userMapper.toDto(userRepository.save(userEntity));
     }
 
+    /**
+     * Usuwa użytkownika ze systemu.
+     *
+     * @param userId identyfikator użytkownika do usunięcia
+     */
     public void delete(UUID userId) {
         userRepository.deleteById(userId);
     }
 
+    /**
+     * Weryfikuje token przesłany w emailu podczas rejestracji.
+     * <p>
+     * Sprawdza ważność i wygaśnięcie tokenu, a następnie aktywuje konto użytkownika.
+     * </p>
+     *
+     * @param token token weryfikacyjny
+     * @return status weryfikacji (VERIFIED, INVALID, EXPIRED)
+     */
     public VerificationStatus verifyToken(String token) {
         Optional<UserEntity> userOptional = userRepository.findByVerificationToken(token);
 
@@ -113,6 +169,8 @@ public class UserService {
         user.setActivated(true);
         user.setVerificationToken(null);
         userRepository.save(user);
+
+        emailService.sendWelcomeEmail(user.getEmail(), user.getUsername());
 
         return VerificationStatus.VERIFIED;
     }

@@ -9,9 +9,21 @@ import org.otomotus.backend.config.AuctionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca aukcję samochodu.
+ * <p>
+ * Zawiera informacje o samochodzie, warunkach sprzedaży, sprzedawcy oraz
+ * metadane takie jak liczba wyświetleń, status i czas wygaśnięcia aukcji.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Entity
 @Table(name = "auctions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -71,4 +83,8 @@ public class AuctionEntity {
     private LocalDateTime updatedAt;
 
     private LocalDateTime expiresAt;
+
+    @ManyToMany(mappedBy = "favoriteAuctions")
+    @Builder.Default
+    private Set<UserEntity> favoritedByUsers = new HashSet<>();
 }

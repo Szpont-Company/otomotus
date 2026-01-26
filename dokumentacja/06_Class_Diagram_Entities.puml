@@ -1,0 +1,186 @@
+@startuml Business Object Class Diagram
+
+title Diagram Klas Biznesowych (Entities)\nSystem Otomotus - Aukcje Samochodów
+
+' Definicje klas encji
+
+class UserEntity {
+  - id : UUID <<PK>>
+  - username : String <<unique>>
+  - password : String
+  - email : String <<unique>>
+  - phoneNumber : String
+  - firstName : String
+  - lastName : String
+  - role : UserRole <<enum>>
+  - createdAt : LocalDateTime
+  - lastLoginDate : LocalDateTime
+  - activated : boolean
+  - verificationToken : String
+  - tokenExpirationDate : LocalDateTime
+  --
+  + getFullName() : String
+  + isActivated() : boolean
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+class AuctionEntity {
+  - id : UUID <<PK>>
+  - title : String
+  - description : String
+  - price : BigDecimal
+  - location : String
+  - negotiable : boolean
+  - phoneNumber : String
+  - status : AuctionStatus <<enum>>
+  - viewCount : Integer
+  - promoted : boolean
+  - createdAt : LocalDateTime
+  - updatedAt : LocalDateTime
+  - expiresAt : LocalDateTime
+  --
+  + incrementViewCount() : void
+  + isActive() : boolean
+  + isExpired() : boolean
+}
+
+enum AuctionStatus {
+  ACTIVE
+  SOLD
+  EXPIRED
+  CLOSED
+}
+
+class CarEntity {
+  - id : UUID <<PK>>
+  - vin : String <<unique>>
+  - brand : String
+  - model : String
+  - generation : String
+  - productionYear : int
+  - mileage : int
+  - engineCapacity : int
+  - enginePower : int
+  - fuelType : FuelType <<enum>>
+  - transmission : TransmissionType <<enum>>
+  - color : String
+  --
+  + getFullName() : String
+  + getAge() : int
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+  LPG
+}
+
+enum TransmissionType {
+  MANUAL
+  AUTOMATIC
+  SEMI_AUTOMATIC
+}
+
+class AuctionImageEntity {
+  - id : UUID <<PK>>
+  - imageUrl : String
+  --
+  + getFullPath() : String
+}
+
+class ReviewEntity {
+  - id : UUID <<PK>>
+  - rating : int
+  - comment : String
+  - createdAt : LocalDateTime
+  --
+  + isPositive() : boolean
+}
+
+class ConversationEntity {
+  - id : UUID <<PK>>
+  - createdAt : LocalDateTime
+  - lastMessageAt : LocalDateTime
+  --
+  + getOtherParticipant(userId) : UserEntity
+  + hasUnreadMessages(userId) : boolean
+}
+
+class MessageEntity {
+  - id : UUID <<PK>>
+  - content : String
+  - timestamp : LocalDateTime
+  - isRead : boolean
+  - isEdited : boolean
+  --
+  + markAsRead() : void
+  + editContent(newContent) : void
+}
+
+' Relacje między klasami
+
+UserEntity "1" -- "0..*" AuctionEntity : sells >
+UserEntity "0..*" -- "0..*" AuctionEntity : favorites
+(UserEntity, AuctionEntity) .. FavoriteAuctions
+
+UserEntity "1" -- "0..*" ReviewEntity : writes >
+UserEntity "1" -- "0..*" ReviewEntity : receives >
+
+AuctionEntity "1" *-- "1" CarEntity : contains
+AuctionEntity "1" *-- "0..*" AuctionImageEntity : has
+AuctionEntity "1" -- "0..*" ReviewEntity : about >
+
+ConversationEntity "1" -- "2" UserEntity : participants
+ConversationEntity "0..1" -- "0..1" AuctionEntity : context
+ConversationEntity "1" *-- "0..*" MessageEntity : contains
+
+MessageEntity "0..*" -- "1" UserEntity : sender
+MessageEntity "0..*" -- "1" UserEntity : recipient
+
+UserEntity -- UserRole
+AuctionEntity -- AuctionStatus
+CarEntity -- FuelType
+CarEntity -- TransmissionType
+
+note right of UserEntity
+  Użytkownik może być:
+  - Kupującym
+  - Sprzedawcą
+  - Administratorem
+  (określone przez role)
+end note
+
+note right of AuctionEntity
+  Aukcja posiada:
+  - Jeden samochód
+  - Jednego sprzedawcę
+  - Wiele zdjęć
+  - Status (ACTIVE/SOLD/etc.)
+end note
+
+note bottom of ConversationEntity
+  Konwersacja zawiera:
+  - 2 uczestników (buyer/seller)
+  - Wiele wiadomości
+  - Opcjonalny kontekst (aukcja)
+end note
+
+note left of CarEntity
+  Szczegółowa specyfikacja
+  techniczna pojazdu
+  powiązana 1:1 z aukcją
+end note
+
+note top of ReviewEntity
+  Opinie wystawiane są
+  sprzedawcom po transakcji
+  Rating: 1-5 gwiazdek
+end note
+
+@enduml

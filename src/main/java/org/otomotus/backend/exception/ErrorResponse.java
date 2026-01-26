@@ -7,6 +7,16 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO dla odpowiedzi błędów API.
+ * <p>
+ * Zawiera informacje o błędzie w standardowym formacie JSON,
+ * wysyłane do klienta gdy dojdzie do wyjątku.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter
 @Setter
 @AllArgsConstructor

@@ -7,6 +7,15 @@ import org.otomotus.backend.entity.AuctionEntity;
 import org.otomotus.backend.entity.AuctionImageEntity;
 import org.otomotus.backend.entity.CarEntity;
 
+/**
+ * Mapper dla konwersji między encjami aukcji a DTOs.
+ * <p>
+ * Wykorzystuje MapStruct do automatycznego mapowania pól między obiektami.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface AuctionMapper {
 
@@ -20,6 +29,7 @@ public interface AuctionMapper {
     @Mapping(target = "transmissionType", source = "car.transmission")
     @Mapping(target = "sellerId", source = "seller.id")
     @Mapping(target = "imageUrls", source = "images")
+    @Mapping(target = "vin", source = "car.vin")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "sellerFirstName", source = "seller.firstName")
     @Mapping(target = "sellerLastName", source = "seller.lastName")

@@ -1,0 +1,47 @@
+@startuml Component Diagram
+
+title Diagram Komponentów - Architektura Systemu Otomotus
+
+package "Frontend Layer" {
+  [Web Browser]
+  [SPA Application]
+  [WebSocket Client]
+}
+
+package "API Gateway" {
+  [REST API]
+  [JWT Filter]
+}
+
+package "Controllers" {
+  [AuthController]
+  [UserController]
+  [AuctionController]
+  [ChatController]
+}
+
+package "Services" {
+  [AuctionService]
+  [UserService]
+  [ChatService]
+  [ImageService]
+}
+
+package "Repositories" {
+  [UserRepo]
+  [AuctionRepo]
+  [MessageRepo]
+}
+
+database "Database" {
+}
+
+[SPA Application] --> [REST API]
+[WebSocket Client] --> [ChatService]
+[REST API] --> [JWT Filter]
+[JWT Filter] --> [Controllers]
+[Controllers] --> [Services]
+[Services] --> [Repositories]
+[Repositories] --> [Database]
+
+@enduml

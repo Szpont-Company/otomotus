@@ -1,0 +1,800 @@
+================================================================================
+    SYSTEMATYZACJA FUNKCJI I USŁUG SYSTEMU OTOMOTUS - METODA MOSCOW
+================================================================================
+
+Data utworzenia: 25.01.2026
+Wersja: 1.0
+
+Metodologia MoSCoW:
+• MUST Have - funkcje krytyczne, bez których system nie działa
+• SHOULD Have - funkcje ważne, ale system może działać bez nich
+• COULD Have - funkcje pożądane, "nice to have"
+• WON'T Have - funkcje świadomie pominięte w obecnej wersji
+
+================================================================================
+KATEGORIA: MUST HAVE (Funkcje Krytyczne)
+================================================================================
+
+Prioryt: NAJWYŻSZY
+Uzasadnienie: System nie może działać bez tych funkcji. Stanowią one rdzeń
+               aplikacji i podstawową wartość dla użytkowników.
+
+--------------------------------------------------------------------------------
+M1. REJESTRACJA I LOGOWANIE UŻYTKOWNIKÓW
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• POST /api/auth/register - rejestracja nowego użytkownika
+• POST /api/auth/login - logowanie, zwraca JWT token
+• GET /api/auth/verify?token={token} - weryfikacja email
+
+Uzasadnienie:
+Bez systemu użytkowników nie ma możliwości identyfikacji sprzedawców,
+przypisania aukcji ani zabezpieczenia danych. To fundament bezpieczeństwa.
+
+Wymagania:
+✓ Unikalne username i email
+✓ Hashowanie haseł (BCrypt)
+✓ Weryfikacja email przez token
+✓ JWT dla bezstanowej autentykacji
+✓ Role (USER, ADMIN)
+
+Możliwe ryzyka:
+• Ataki brute-force na hasła → rate limiting
+• Spam rejestracje → CAPTCHA (przyszłość)
+
+--------------------------------------------------------------------------------
+M2. TWORZENIE I PRZEGLĄDANIE AUKCJI
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• POST /api/auctions - utworzenie nowej aukcji
+• GET /api/auctions - lista aktywnych aukcji (paginacja)
+• GET /api/auctions/{id} - szczegóły aukcji
+
+Uzasadnienie:
+Główna funkcjonalność systemu - bez aukcji nie ma platformy do sprzedaży.
+Przeglądanie ofert jest podstawową potrzebą kupujących.
+
+Wymagania:
+✓ Formularz z danymi pojazdu (VIN, marka, model, rok, przebieg...)
+✓ Walidacja danych wejściowych
+✓ Status ACTIVE dla nowych aukcji
+✓ Automatyczne ustawianie expiresAt (+30 dni)
+✓ Paginacja listy (wydajność)
+✓ Publiczny dostęp do GET (bez logowania)
+
+Metryki:
+• ViewCount - liczba wyświetleń aukcji
+• CreatedAt / UpdatedAt - timestamps
+
+--------------------------------------------------------------------------------
+M3. UPLOAD ZDJĘĆ DO AUKCJI
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• POST /api/auctions/{id}/images - upload zdjęcia (multipart)
+
+Uzasadnienie:
+Zdjęcia są kluczowe dla sprzedaży samochodów. Kupujący muszą zobaczyć
+stan pojazdu. Aukcje bez zdjęć są praktycznie niewidoczne.
+
+Wymagania:
+✓ Format: JPG, PNG, WebP
+✓ Max rozmiar: 10 MB per file
+✓ Unikalny naming: UUID_originalname.jpg
+✓ Storage: katalog /uploads/
+✓ Min. 1 zdjęcie, max. 15 zdjęć per aukcja
+✓ Cascade delete - usunięcie aukcji usuwa zdjęcia
+
+Zabezpieczenia:
+✓ Walidacja typu MIME
+✓ Sanityzacja nazwy pliku
+✓ Sprawdzenie uprawnień (tylko owner)
+
+--------------------------------------------------------------------------------
+M4. EDYCJA I USUWANIE WŁASNYCH AUKCJI
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• PUT /api/auctions/{id} - edycja aukcji
+• DELETE /api/auctions/{id} - usunięcie aukcji
+
+Uzasadnienie:
+Sprzedawcy muszą móc poprawiać błędy, aktualizować cenę lub usunąć
+aukcję gdy pojazd został sprzedany.
+
+Wymagania:
+✓ Autoryzacja - tylko owner może edytować
+✓ Partial update (tylko podane pola)
+✓ Walidacja biznesowa (np. cena >= 0)
+✓ Cascade delete dla Car, Images
+
+Zabezpieczenia:
+• Sprawdzenie: auction.seller.id == currentUser.id
+• 403 Forbidden jeśli nie owner
+
+--------------------------------------------------------------------------------
+M5. AUTORYZACJA I BEZPIECZEŃSTWO (JWT)
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• JwtAuthenticationFilter - filtr na każdym requeście
+• JwtService - generowanie i walidacja tokenów
+• SecurityConfig - konfiguracja Spring Security
+
+Uzasadnienie:
+Bez zabezpieczeń system jest narażony na ataki, kradzież danych,
+nieuprawnione modyfikacje.
+
+Wymagania:
+✓ JWT z podpisem cyfrowym (HMAC SHA-512)
+✓ Expiration time (24h)
+✓ Bearer token w headerze
+✓ Autoryzacja na poziomie endpointów
+✓ HTTPS only (produkcja)
+✓ CORS configuration
+
+Flow:
+1. Login → generuje token
+2. Każdy request: Authorization: Bearer {token}
+3. Filter weryfikuje i ekstraktuje username
+4. SecurityContext przechowuje Authentication
+
+--------------------------------------------------------------------------------
+M6. PODSTAWOWE ZARZĄDZANIE PROFILEM
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• GET /api/users/me - pobranie własnego profilu
+• PATCH /api/users/me - edycja własnych danych
+
+Uzasadnienie:
+Użytkownicy muszą móc zaktualizować dane kontaktowe, email, telefon.
+
+Wymagania:
+✓ Edycja: firstName, lastName, email, phoneNumber
+✓ NIE można zmienić: username, role (bezpieczeństwo)
+✓ Walidacja formatu email
+✓ Walidacja unikalności email
+
+--------------------------------------------------------------------------------
+M7. FILTROWANIE I WYSZUKIWANIE AUKCJI
+--------------------------------------------------------------------------------
+Status: PODSTAWOWE ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• GET /api/auctions?page=0&size=20&sort=createdAt,desc
+
+Uzasadnienie:
+Lista wszystkich aukcji bez filtrów jest nieużyteczna. Użytkownicy
+muszą móc znaleźć interesujące ich pojazdy.
+
+Zaimplementowane:
+✓ Paginacja (Pageable)
+✓ Sortowanie (Sort)
+✓ Filtr po statusie (tylko ACTIVE)
+
+TODO (SHOULD Have):
+○ Filtr po marce
+○ Filtr po przedziale cenowym
+○ Filtr po lokalizacji
+○ Filtr po roku produkcji
+
+================================================================================
+KATEGORIA: SHOULD HAVE (Funkcje Ważne)
+================================================================================
+
+Prioryt: WYSOKI
+Uzasadnienie: Funkcje znacząco zwiększające wartość systemu. Brak ich
+               powoduje dyskomfort użytkowników, ale system działa.
+
+--------------------------------------------------------------------------------
+S1. SYSTEM ULUBIONYCH AUKCJI
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• POST /api/auctions/{id}/favorite - dodaj do ulubionych
+• DELETE /api/auctions/{id}/favorite - usuń z ulubionych
+• GET /api/auctions/favorites - lista ulubionych
+
+Uzasadnienie:
+Kupujący przeglądają wiele ofert i potrzebują sposobu na zapisanie
+interesujących aukcji do późniejszego przeglądania.
+
+Wymagania:
+✓ Many-to-Many: User ↔ Auction
+✓ Tabela: user_favorite_auctions
+✓ Oznaczenie "isFavorite" w listach aukcji
+✓ Autoryzacja - tylko zalogowani
+
+Benefity:
+• Zwiększone engagement użytkowników
+• Łatwiejsze porównywanie ofert
+• Dane do rekomendacji (przyszłość)
+
+--------------------------------------------------------------------------------
+S2. KOMUNIKACJA MIĘDZY UŻYTKOWNIKAMI (CHAT)
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• POST /api/messages/send - wyślij wiadomość
+• GET /api/messages/conversations/my - lista konwersacji
+• GET /api/messages/conversation/{id}/messages - historia wiadomości
+• PATCH /api/messages/{id}/read - oznacz jako przeczytane
+• WebSocket /ws - komunikacja real-time
+
+Uzasadnienie:
+Kupujący muszą móc zadawać pytania sprzedawcom o stan pojazdu,
+historię, możliwość oględzin. Brak komunikacji = brak transakcji.
+
+Wymagania:
+✓ Konwersacje 1:1 (buyer ↔ seller)
+✓ Kontekst aukcji
+✓ WebSocket dla instant messaging
+✓ Status przeczytania (isRead)
+✓ Edycja i usuwanie wiadomości
+✓ Autoryzacja (tylko uczestnicy konwersacji)
+
+Features:
+✓ Real-time delivery (WebSocket)
+✓ Offline messages (zapisane w DB)
+✓ Historia rozmów
+✓ Powiadomienia o nowych wiadomościach
+
+Możliwe rozszerzenia (COULD):
+○ Typing indicators
+○ Read receipts (✓✓)
+○ Reakcje emoji
+
+--------------------------------------------------------------------------------
+S3. SYSTEM OPINII I OCEN SPRZEDAWCÓW
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• POST /api/reviews - dodaj opinię
+• GET /api/reviews/seller/{sellerId} - lista opinii
+• GET /api/reviews/seller/{sellerId}/summary - statystyki
+
+Uzasadnienie:
+Budowanie zaufania w społeczności. Kupujący mogą weryfikować
+wiarygodność sprzedawców przed transakcją.
+
+Wymagania:
+✓ Rating 1-5 gwiazdek
+✓ Tekstowy komentarz
+✓ Opinia po transakcji (kontekst aukcji)
+✓ Autor ≠ Sprzedawca
+✓ Obliczanie średniej ocen
+✓ Liczba wszystkich opinii
+
+Benefity:
+• Motywacja dla uczciwych sprzedawców
+• Ostrzeżenie przed nieuczciwymi
+• Zwiększone zaufanie platformy
+
+Zabezpieczenia:
+• Nie można ocenić samego siebie
+• Jedna opinia per aukcja per user (przyszłość)
+
+--------------------------------------------------------------------------------
+S4. GENEROWANIE UMOWY KUPNA-SPRZEDAŻY (PDF)
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• GET /api/auctions/{id}/contract - generuj i pobierz PDF
+
+Uzasadnienie:
+Ułatwienie procesu finalizacji transakcji. Użytkownicy otrzymują
+gotowy szablon umowy z wypełnionymi danymi.
+
+Wymagania:
+✓ Format PDF
+✓ Dane z aukcji (pojazd, cena, VIN)
+✓ Dane stron (sprzedawca, kupujący)
+✓ Zgodność z prawem polskim
+✓ Download jako attachment
+
+Funkcjonalność:
+• Automatyczne wypełnianie danych
+• Szablon z polami do uzupełnienia
+• Podpisy stron (ręczne)
+
+Ograniczenia:
+• Podstawowy szablon (nie zastępuje prawnika)
+• Brak e-podpisów (wymagane ręczne)
+
+--------------------------------------------------------------------------------
+S5. PANEL ADMINISTRATORA
+--------------------------------------------------------------------------------
+Status: CZĘŚCIOWO ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• GET /api/users - lista wszystkich użytkowników
+• GET /api/users/{id} - szczegóły użytkownika
+• PATCH /api/users/{id} - edycja użytkownika
+• DELETE /api/users/{id} - usunięcie użytkownika
+
+Uzasadnienie:
+Administrator musi móc moderować platformę, usuwać spam,
+blokować nieuczciwych użytkowników.
+
+Zaimplementowane:
+✓ CRUD użytkowników
+✓ @PreAuthorize("ADMIN")
+✓ Zmiana roli (USER ↔ ADMIN)
+
+TODO:
+○ Moderacja aukcji
+○ Dashboard ze statystykami
+○ Logi aktywności
+○ Bany i blokady
+
+--------------------------------------------------------------------------------
+S6. LISTA WŁASNYCH AUKCJI
+--------------------------------------------------------------------------------
+Status: ZAIMPLEMENTOWANE ✓
+
+Komponenty:
+• GET /api/auctions/my-auctions - moje aukcje
+
+Uzasadnienie:
+Sprzedawca musi widzieć wszystkie swoje ogłoszenia w jednym miejscu,
+śledzić ich status, liczbę wyświetleń.
+
+Wymagania:
+✓ Filtrowanie po seller_id
+✓ Wszystkie statusy (ACTIVE, SOLD, EXPIRED)
+✓ Sortowanie po dacie
+
+Features:
+• Liczba wyświetleń per aukcja
+• Status każdej aukcji
+• Łatwa edycja/usuwanie
+
+================================================================================
+KATEGORIA: COULD HAVE (Funkcje Pożądane)
+================================================================================
+
+Prioryt: ŚREDNI
+Uzasadnienie: Funkcje zwiększające komfort użytkowania, ale nie krytyczne.
+               Można je dodać w późniejszych wersjach.
+
+--------------------------------------------------------------------------------
+C1. ZAAWANSOWANE FILTROWANIE AUKCJI
+--------------------------------------------------------------------------------
+Status: CZĘŚCIOWO ZAIMPLEMENTOWANE
+
+TODO:
+○ Filtr po marce (dropdown)
+○ Filtr po modelu (zależny od marki)
+○ Filtr po cenie (slider min-max)
+○ Filtr po lokalizacji (mapa/województwo)
+○ Filtr po roku produkcji (slider)
+○ Filtr po przebiegu (slider)
+○ Filtr po typie paliwa
+○ Filtr po skrzyni biegów
+
+Implementacja:
+• Query parameters: ?brand=BMW&priceMin=50000&priceMax=100000
+• Backend: @Query z WHERE clauses
+• Frontend: dynamiczne formularze
+
+Benefit:
+Użytkownicy szybciej znajdą to, czego szukają.
+
+--------------------------------------------------------------------------------
+C2. PROMOWANE AUKCJE
+--------------------------------------------------------------------------------
+Status: POLE ISTNIEJE, LOGIKA BRAK
+
+Istniejące:
+• AuctionEntity.promoted (boolean)
+
+TODO:
+○ Płatne promowanie aukcji
+○ Wyświetlanie promowanych na górze listy
+○ Wyróżnienie wizualne (badge "Promowane")
+○ Limit czasu promowania
+○ Statystyki skuteczności
+
+Monetyzacja:
+• Płatność za 7/14/30 dni promowania
+• Zwiększona widoczność = więcej wyświetleń
+
+--------------------------------------------------------------------------------
+C3. POWIADOMIENIA EMAIL
+--------------------------------------------------------------------------------
+Status: PODSTAWOWE ZAIMPLEMENTOWANE (weryfikacja)
+
+Zaimplementowane:
+✓ Email weryfikacyjny po rejestracji
+
+TODO:
+○ Powiadomienie o nowej wiadomości (gdy offline)
+○ Powiadomienie o nowej ofercie
+○ Przypomnienie o wygasającej aukcji
+○ Newsletter z nowymi aukcjami (subscriptions)
+
+Technologia:
+• SMTP (JavaMailSender)
+• Szablony HTML (Thymeleaf)
+• Opcja wyłączenia (user preferences)
+
+--------------------------------------------------------------------------------
+C4. MAPA LOKALIZACJI
+--------------------------------------------------------------------------------
+Status: NIE ZAIMPLEMENTOWANE
+
+TODO:
+○ Integracja z Google Maps / OpenStreetMap
+○ Wyświetlanie aukcji na mapie
+○ Filtrowanie po odległości od użytkownika
+○ Geolokalizacja przeglądarki
+
+Use case:
+Kupujący widzi aukcje w swojej okolicy, może osobiście
+obejrzeć pojazd.
+
+API:
+• Google Maps JavaScript API
+• Geocoding: lokalizacja → współrzędne
+
+--------------------------------------------------------------------------------
+C5. HISTORIA POJAZDU (VIN DECODER)
+--------------------------------------------------------------------------------
+Status: NIE ZAIMPLEMENTOWANE
+
+TODO:
+○ Integracja z bazą VIN (np. Carfax, AutoCheck)
+○ Automatyczne pobieranie danych pojazdu po VIN
+○ Historia wypadków, serwisowania
+○ Liczba poprzednich właścicieli
+
+Benefit:
+Zwiększona transparentność, mniej oszustw.
+
+Ograniczenia:
+• Płatne API (koszty)
+• Dostępność danych (nie wszystkie pojazdy)
+
+--------------------------------------------------------------------------------
+C6. PORÓWNYWARKA AUKCJI
+--------------------------------------------------------------------------------
+Status: NIE ZAIMPLEMENTOWANE
+
+TODO:
+○ Dodawanie aukcji do porównania (max 3-4)
+○ Tabela z porównaniem parametrów
+○ Wyróżnienie różnic
+○ Zapisywanie porównań
+
+Funkcjonalność:
+• Side-by-side comparison
+• Cena, przebieg, rok, lokalizacja
+• Link do każdej aukcji
+
+--------------------------------------------------------------------------------
+C7. OBSERWOWANIE SPRZEDAWCÓW
+--------------------------------------------------------------------------------
+Status: NIE ZAIMPLEMENTOWANE
+
+TODO:
+○ Przycisk "Obserwuj sprzedawcę"
+○ Powiadomienia o nowych aukcjach tego sprzedawcy
+○ Lista obserwowanych sprzedawców
+
+Use case:
+Dealerzy dodający wiele aukcji. Użytkownik może śledzić
+ulubionego sprzedawcę.
+
+Implementacja:
+• Many-to-Many: User ↔ User (followers)
+
+--------------------------------------------------------------------------------
+C8. STATYSTYKI DLA SPRZEDAWCÓW
+--------------------------------------------------------------------------------
+Status: PODSTAWOWE ZAIMPLEMENTOWANE (viewCount)
+
+Istniejące:
+✓ viewCount - liczba wyświetleń
+
+TODO:
+○ Wykresy wyświetleń w czasie
+○ Źródła ruchu (skąd użytkownicy przyszli)
+○ Średni czas przeglądania aukcji
+○ Konwersja: wyświetlenia → wiadomości
+○ Ranking popularności aukcji
+
+Dashboard:
+• Panel sprzedawcy z analityką
+• Porady jak poprawić widoczność
+
+--------------------------------------------------------------------------------
+C9. WERSJE MOBILNE (RESPONSIVE + PWA)
+--------------------------------------------------------------------------------
+Status: ZALEŻY OD FRONTENDU
+
+TODO:
+○ Responsive design (Bootstrap/Tailwind)
+○ Progressive Web App (PWA)
+○ App ikona, offline mode
+○ Push notifications (mobile)
+
+Benefit:
+Większość użytkowników przegląda na telefonach.
+
+Technologie:
+• Service Workers
+• Web App Manifest
+• Push API
+
+--------------------------------------------------------------------------------
+C10. EKSPORT DANYCH (GDPR)
+--------------------------------------------------------------------------------
+Status: NIE ZAIMPLEMENTOWANE
+
+TODO:
+○ Eksport wszystkich danych użytkownika (JSON/PDF)
+○ Zgodność z GDPR
+○ Usunięcie konta i wszystkich danych
+○ Opcja "anonimizacji" zamiast usunięcia
+
+Endpoint:
+• GET /api/users/me/export → ZIP z danymi
+
+GDPR requirements:
+• Prawo do eksportu danych
+• Prawo do usunięcia danych
+• Zgoda na przetwarzanie
+
+================================================================================
+KATEGORIA: WON'T HAVE (Pominięte w obecnej wersji)
+================================================================================
+
+Prioryt: BRAK
+Uzasadnienie: Funkcje świadomie pominięte - zbyt skomplikowane, kosztowne
+               lub wykraczające poza zakres MVP.
+
+--------------------------------------------------------------------------------
+W1. SYSTEM PŁATNOŚCI ONLINE
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Wymaga integracji z operatorami płatności (Stripe, PayU)
+• Certyfikacja PCI DSS
+• Obsługa zwrotów, reklamacji
+• Koszty prowizji
+
+Aktualnie:
+Transakcje odbywają się poza platformą (gotówka, przelew).
+Platforma jedynie łączy kupujących i sprzedających.
+
+Przyszłość:
+Można dodać jako opcję premium dla dealerów.
+
+--------------------------------------------------------------------------------
+W2. SYSTEM AUKCJI "NA ŻYWO" (BIDDING)
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Otomotus to platforma ogłoszeń, nie aukcji licytacyjnych
+• Wymagałaby real-time bidding system
+• Skomplikowana logika (outbid notifications, auto-bidding)
+• Problemy z fake bids
+
+Aktualnie:
+Ustalona cena (lub negocjacje prywatne).
+
+Przyszłość:
+Osobna funkcjonalność "Licytacje" (opcjonalnie).
+
+--------------------------------------------------------------------------------
+W3. INTEGRACJA Z MEDIA SPOŁECZNOŚCIOWYMI
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• OAuth implementation (Facebook, Google Login)
+• Sharing aukcji na FB/Twitter
+• Social proof (liczba share'ów)
+
+Aktualnie:
+Standardowa rejestracja email/hasło.
+
+Przyszłość:
+Social login jako alternatywna metoda rejestracji.
+
+--------------------------------------------------------------------------------
+W4. VIDEO STREAMING (LIVE OGLĘDZINY)
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Wymaga infrastruktury WebRTC
+• High bandwidth requirements
+• Koszty serwerów streaming
+
+Aktualnie:
+Zdjęcia + chat tekstowy.
+
+Przyszłość:
+Możliwość umówienia video calla (integracja z Zoom/Skype).
+
+--------------------------------------------------------------------------------
+W5. AI/ML REKOMENDACJE
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Wymaga dużej ilości danych (użytkownicy, interakcje)
+• Machine Learning models (training, deployment)
+• Infrastructure (GPU servers)
+
+Aktualnie:
+Ręczne przeglądanie i filtrowanie.
+
+Przyszłość:
+"Polecane dla Ciebie" na podstawie historii przeglądania.
+
+--------------------------------------------------------------------------------
+W6. MULTI-LANGUAGE SUPPORT (i18n)
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• MVP skupia się na rynku polskim
+• Tłumaczenia interfejsu i treści
+• Lokalizacja (waluty, daty, formaty)
+
+Aktualnie:
+Tylko język polski.
+
+Przyszłość:
+Ekspansja na inne rynki (Czechy, Słowacja).
+
+--------------------------------------------------------------------------------
+W7. BLOCKCHAIN/NFT DLA HISTORII POJAZDU
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Nadmiernie skomplikowane dla MVP
+• Koszty transakcji blockchain
+• Brak przyjęcia przez użytkowników
+• Hype vs. real value
+
+Aktualnie:
+Standardowa baza danych relacyjna.
+
+Przyszłość:
+Nie planowane (chyba że zmiana regulacji).
+
+--------------------------------------------------------------------------------
+W8. NATIVE MOBILE APPS (iOS/Android)
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Koszty rozwoju (2 osobne aplikacje)
+• Konieczność publikacji w App Store/Google Play
+• Maintenance overhead
+
+Aktualnie:
+Responsive web app (działa w mobilnej przeglądarce).
+
+Przyszłość:
+PWA (Progressive Web App) jako kompromis.
+
+--------------------------------------------------------------------------------
+W9. ADVANCED ANALYTICS & BI
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Wymaga narzędzi BI (Tableau, Power BI)
+• Data warehouse
+• ETL processes
+
+Aktualnie:
+Podstawowe statystyki w panelu admina.
+
+Przyszłość:
+Dedykowany dashboard dla managementu.
+
+--------------------------------------------------------------------------------
+W10. MARKETPLACE DLA CZĘŚCI SAMOCHODOWYCH
+--------------------------------------------------------------------------------
+Powód pominięcia:
+• Wykracza poza zakres (sprzedaż całych pojazdów)
+• Inna logika (małe przedmioty, shipping)
+• Kategorie produktów
+
+Aktualnie:
+Tylko kompletne samochody.
+
+Przyszłość:
+Osobna sekcja lub oddzielna platforma.
+
+================================================================================
+PODSUMOWANIE PRIORYTETÓW
+================================================================================
+
+MUST HAVE (M) - 7 funkcji - WSZYSTKIE ZAIMPLEMENTOWANE ✓
+--------------------------------------------------------------
+✓ M1. Rejestracja i logowanie
+✓ M2. Tworzenie i przeglądanie aukcji
+✓ M3. Upload zdjęć
+✓ M4. Edycja i usuwanie aukcji
+✓ M5. Autoryzacja JWT
+✓ M6. Zarządzanie profilem
+✓ M7. Filtrowanie (podstawowe)
+
+SHOULD HAVE (S) - 6 funkcji - WSZYSTKIE ZAIMPLEMENTOWANE ✓
+------------------------------------------------------------
+✓ S1. Ulubione aukcje
+✓ S2. Chat (WebSocket)
+✓ S3. System opinii
+✓ S4. Generowanie umów PDF
+✓ S5. Panel administratora (częściowo)
+✓ S6. Lista własnych aukcji
+
+COULD HAVE (C) - 10 funkcji - CZĘŚCIOWO / DO ZAIMPLEMENTOWANIA
+----------------------------------------------------------------
+○ C1. Zaawansowane filtrowanie
+○ C2. Promowane aukcje
+○ C3. Powiadomienia email
+○ C4. Mapa lokalizacji
+○ C5. Historia pojazdu (VIN)
+○ C6. Porównywarka aukcji
+○ C7. Obserwowanie sprzedawców
+○ C8. Statystyki dla sprzedawców
+○ C9. PWA / Mobile
+○ C10. Eksport danych (GDPR)
+
+WON'T HAVE (W) - 10 funkcji - ŚWIADOMIE POMINIĘTE
+--------------------------------------------------
+✗ W1. Płatności online
+✗ W2. Aukcje licytacyjne
+✗ W3. Social media integration
+✗ W4. Video streaming
+✗ W5. AI/ML rekomendacje
+✗ W6. Multi-language
+✗ W7. Blockchain/NFT
+✗ W8. Native mobile apps
+✗ W9. Advanced BI
+✗ W10. Marketplace części
+
+================================================================================
+REALIZACJA MVP (Minimum Viable Product)
+================================================================================
+
+Status: UKOŃCZONY ✓
+
+MVP zawiera:
+• Wszystkie funkcje MUST HAVE (100%)
+• Wszystkie funkcje SHOULD HAVE (100%)
+
+To oznacza, że system ma kompletną funkcjonalność podstawową i jest
+gotowy do wdrożenia produkcyjnego.
+
+Kolejne fazy rozwoju mogą obejmować funkcje z kategorii COULD HAVE
+w zależności od feedbacku użytkowników i priorytetów biznesowych.
+
+================================================================================
+REKOMENDACJE KOLEJNOŚCI IMPLEMENTACJI (COULD HAVE)
+================================================================================
+
+Faza 2 (najbliższe 3 miesiące):
+1. C1. Zaawansowane filtrowanie - bezpośredni wpływ na użyteczność
+2. C3. Powiadomienia email - zwiększenie engagement
+3. C9. PWA/Responsive - większość ruchu z mobile
+
+Faza 3 (6-12 miesięcy):
+4. C8. Statystyki dla sprzedawców - wartość dla power users
+5. C2. Promowane aukcje - monetyzacja
+6. C4. Mapa lokalizacji - diferentiator
+
+Faza 4 (12+ miesięcy):
+7. C5. Historia pojazdu (VIN) - premium feature
+8. C10. Eksport danych (GDPR) - compliance
+9. C6. Porównywarka - nice to have
+10. C7. Obserwowanie sprzedawców - edge case
+
+================================================================================
+KONIEC DOKUMENTU
+================================================================================

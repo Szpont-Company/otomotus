@@ -1,0 +1,743 @@
+================================================================================
+         OPIS DIAGRAMÓW KLAS I KOMPONENTÓW - SYSTEM OTOMOTUS
+================================================================================
+
+Data utworzenia: 25.01.2026
+Wersja: 1.0
+
+================================================================================
+CZĘŚĆ 1: DIAGRAM KLAS BIZNESOWYCH (BUSINESS OBJECT CLASS DIAGRAM)
+         Plik: 06_Class_Diagram_Entities.puml
+================================================================================
+
+CEL DIAGRAMU:
+-------------
+Przedstawienie modelu danych systemu - encje biznesowe, ich atrybuty,
+metody oraz relacje między nimi. Diagram odzwierciedla strukturę bazy danych
+oraz logikę domenową aplikacji.
+
+================================================================================
+1. KLASY ENCJI
+================================================================================
+
+1.1. UserEntity (Użytkownik)
+----------------------------
+Reprezentuje użytkownika systemu - może być kupującym, sprzedawcą lub adminem.
+
+Atrybuty:
+• id (UUID, PK) - unikalny identyfikator użytkownika
+• username (String, unique) - nazwa użytkownika do logowania
+• password (String) - zahashowane hasło (BCrypt)
+• email (String, unique) - adres email do weryfikacji
+• phoneNumber (String) - numer telefonu kontaktowego
+• firstName (String) - imię
+• lastName (String) - nazwisko
+• role (UserRole enum) - rola: USER lub ADMIN
+• createdAt (LocalDateTime) - data rejestracji
+• lastLoginDate (LocalDateTime) - ostatnie logowanie
+• activated (boolean) - czy konto zweryfikowane
+• verificationToken (String) - token do weryfikacji email
+• tokenExpirationDate (LocalDateTime) - ważność tokenu
+
+Metody:
+• getFullName() : String - zwraca imię + nazwisko
+• isActivated() : boolean - sprawdza status konta
+
+Relacje:
+• 1 user → 0..* auctions (jako sprzedawca)
+• 0..* users ↔ 0..* auctions (ulubione, Many-to-Many)
+• 1 user → 0..* reviews (jako autor)
+• 1 user → 0..* reviews (jako oceniany sprzedawca)
+• 1 user → 0..* conversations (jako uczestnik)
+• 1 user → 0..* messages (jako nadawca)
+• 1 user → 0..* messages (jako odbiorca)
+
+Ważne:
+Jeden użytkownik może być jednocześnie kupującym i sprzedawcą.
+Rozróżnienie następuje kontekstowo - w danej aukcji user może być
+albo sprzedawcą (seller) albo kupującym (klikającym "ulubione").
+
+----------------------------
+
+1.2. AuctionEntity (Aukcja)
+---------------------------
+Reprezentuje ogłoszenie sprzedaży samochodu.
+
+Atrybuty:
+• id (UUID, PK) - unikalny identyfikator aukcji
+• title (String) - tytuł ogłoszenia, np. "BMW 320d 2018"
+• description (String, TEXT) - szczegółowy opis pojazdu
+• price (BigDecimal) - cena w PLN
+• location (String) - lokalizacja pojazdu
+• negotiable (boolean) - czy cena do negocjacji
+• phoneNumber (String) - nr telefonu sprzedawcy
+• status (AuctionStatus enum) - status aukcji
+• viewCount (Integer) - liczba wyświetleń (default: 0)
+• promoted (boolean) - czy aukcja promowana (default: false)
+• createdAt (LocalDateTime) - data utworzenia
+• updatedAt (LocalDateTime) - ostatnia aktualizacja
+• expiresAt (LocalDateTime) - data wygaśnięcia (default: +30 dni)
+
+Metody:
+• incrementViewCount() : void - zwiększa licznik o 1
+• isActive() : boolean - sprawdza czy status = ACTIVE
+• isExpired() : boolean - sprawdza czy expiresAt < now()
+
+Relacje:
+• 1 auction → 1 car (composition, cascade delete)
+• 1 auction → 1 user (seller, sprzedawca)
+• 1 auction → 0..* images (composition, orphan removal)
+• 1 auction → 0..* reviews (opinie o transakcji)
+• 0..* auctions ↔ 0..* users (ulubione, M2M)
+
+----------------------------
+
+1.3. CarEntity (Samochód)
+-------------------------
+Szczegółowa specyfikacja techniczna pojazdu. Powiązana 1:1 z aukcją.
+
+Atrybuty:
+• id (UUID, PK) - identyfikator
+• vin (String, unique) - numer VIN (Vehicle Identification Number)
+• brand (String) - marka, np. "BMW"
+• model (String) - model, np. "320d"
+• generation (String) - generacja, np. "F30"
+• productionYear (int) - rok produkcji
+• mileage (int) - przebieg w km
+• engineCapacity (int) - pojemność silnika w cm³
+• enginePower (int) - moc silnika w KM
+• fuelType (FuelType enum) - rodzaj paliwa
+• transmission (TransmissionType enum) - skrzynia biegów
+• color (String) - kolor nadwozia
+
+Metody:
+• getFullName() : String - zwraca "Brand Model Generation"
+• getAge() : int - oblicza wiek pojazdu (currentYear - productionYear)
+
+Relacje:
+• 1 car ← 1 auction (jedna aukcja = jeden samochód)
+
+Dlaczego osobna encja Car?
+• Separation of concerns - dane pojazdu vs. dane sprzedaży
+• Potencjalna rozbudowa o historię pojazdu (przyszłość)
+• Możliwość walidacji VIN niezależnie od aukcji
+
+----------------------------
+
+1.4. AuctionImageEntity (Zdjęcie aukcji)
+----------------------------------------
+Reprezentuje jedno zdjęcie przypisane do aukcji.
+
+Atrybuty:
+• id (UUID, PK)
+• imageUrl (String) - ścieżka do pliku, np. "uuid_filename.jpg"
+
+Metody:
+• getFullPath() : String - zwraca pełną ścieżkę: "/uploads/" + imageUrl
+
+Relacje:
+• 1 image → 1 auction (ManyToOne)
+• aukcja może mieć wiele zdjęć (OneToMany)
+
+Cascade operations:
+• DELETE auction → DELETE all images
+• Orphan removal: usunięcie image bez aukcji
+
+----------------------------
+
+1.5. ReviewEntity (Opinia)
+--------------------------
+Opinia/ocena wystawiona sprzedawcy po transakcji.
+
+Atrybuty:
+• id (UUID, PK)
+• rating (int) - ocena 1-5 gwiazdek
+• comment (String, TEXT) - tekstowy komentarz
+• createdAt (LocalDateTime) - data wystawienia
+
+Metody:
+• isPositive() : boolean - sprawdza czy rating >= 4
+
+Relacje:
+• 1 review → 1 user (author - autor opinii)
+• 1 review → 1 user (seller - oceniany sprzedawca)
+• 1 review → 1 auction (kontekst - o którą aukcję chodzi)
+
+Walidacja:
+• Rating: 1-5 (javax.validation.constraints.Min/Max)
+• Comment: max 1000 znaków
+• Autor ≠ Sprzedawca (nie można ocenić samego siebie)
+
+----------------------------
+
+1.6. ConversationEntity (Konwersacja)
+-------------------------------------
+Reprezentuje rozmowę między dwoma użytkownikami w kontekście aukcji.
+
+Atrybuty:
+• id (UUID, PK)
+• createdAt (LocalDateTime) - kiedy rozpoczęto rozmowę
+• lastMessageAt (LocalDateTime) - timestamp ostatniej wiadomości
+
+Metody:
+• getOtherParticipant(userId) : UserEntity
+  - zwraca drugiego uczestnika (nie będącego userId)
+• hasUnreadMessages(userId) : boolean
+  - sprawdza czy są nieprzeczytane wiadomości dla userId
+
+Relacje:
+• 1 conversation → 2 users (participant1, participant2)
+• 1 conversation → 0..1 auction (kontekst rozmowy, opcjonalny)
+• 1 conversation → 0..* messages (wiadomości w rozmowie)
+
+Unikalne constraint:
+UNIQUE(participant1_id, participant2_id, auction_id)
+- zapobiega duplikowaniu konwersacji
+
+----------------------------
+
+1.7. MessageEntity (Wiadomość)
+------------------------------
+Pojedyncza wiadomość w konwersacji.
+
+Atrybuty:
+• id (UUID, PK)
+• content (String, TEXT) - treść wiadomości
+• timestamp (LocalDateTime) - kiedy wysłano
+• isRead (boolean) - czy odczytana (default: false)
+• isEdited (boolean) - czy edytowana (default: false)
+
+Metody:
+• markAsRead() : void - ustawia isRead = true
+• editContent(newContent) : void - zmienia treść i ustawia isEdited = true
+
+Relacje:
+• 1 message → 1 conversation
+• 1 message → 1 user (sender - nadawca)
+• 1 message → 1 user (recipient - odbiorca)
+
+Sortowanie:
+• ORDER BY timestamp ASC (chronologicznie)
+
+----------------------------
+
+1.8. Enumy (Typy wyliczeniowe)
+------------------------------
+
+UserRole:
+• USER - standardowy użytkownik (kupujący/sprzedający)
+• ADMIN - administrator platformy
+
+AuctionStatus:
+• ACTIVE - aukcja aktywna, widoczna publicznie
+• SOLD - samochód sprzedany
+• EXPIRED - aukcja wygasła (po 30 dniach)
+• CLOSED - zamknięta przez sprzedawcę
+
+FuelType:
+• PETROL - benzyna
+• DIESEL - olej napędowy
+• ELECTRIC - elektryczny
+• HYBRID - hybrydowy
+• LPG - gaz
+
+TransmissionType:
+• MANUAL - manualna
+• AUTOMATIC - automatyczna
+• SEMI_AUTOMATIC - półautomatyczna
+
+================================================================================
+2. RELACJE MIĘDZY ENCJAMI
+================================================================================
+
+2.1. Relacja User ↔ Auction (Sprzedawca)
+----------------------------------------
+Typ: ManyToOne / OneToMany
+Kierunek: Bidirectional
+
+User (seller):
+@OneToMany(mappedBy = "seller")
+List<AuctionEntity> auctions;
+
+Auction:
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "user_id")
+UserEntity seller;
+
+Znaczenie:
+- Jeden użytkownik może mieć wiele aukcji (jako sprzedawca)
+- Jedna aukcja ma dokładnie jednego sprzedawcę
+
+Cascade: brak (usunięcie user nie usuwa aukcji, tylko je orphans)
+
+----------------------------
+
+2.2. Relacja User ↔ Auction (Ulubione)
+--------------------------------------
+Typ: ManyToMany
+Kierunek: Bidirectional
+
+User:
+@ManyToMany
+@JoinTable(
+  name = "user_favorite_auctions",
+  joinColumns = @JoinColumn(name = "user_id"),
+  inverseJoinColumns = @JoinColumn(name = "auction_id")
+)
+Set<AuctionEntity> favoriteAuctions;
+
+Auction:
+@ManyToMany(mappedBy = "favoriteAuctions")
+Set<UserEntity> favoritedByUsers;
+
+Tabela łącząca:
+user_favorite_auctions:
+- user_id (FK → users.id)
+- auction_id (FK → auctions.id)
+- PRIMARY KEY(user_id, auction_id)
+
+Znaczenie:
+- Użytkownik może mieć wiele ulubionych aukcji
+- Aukcja może być ulubiona przez wielu użytkowników
+
+----------------------------
+
+2.3. Relacja Auction ↔ Car
+---------------------------
+Typ: OneToOne
+Kierunek: Unidirectional (Auction → Car)
+
+Auction:
+@OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+@JoinColumn(name = "car_id")
+CarEntity car;
+
+Znaczenie:
+- Jedna aukcja = dokładnie jeden samochód
+- Usunięcie aukcji usuwa powiązany samochód (cascade)
+
+----------------------------
+
+2.4. Relacja Auction ↔ Images
+------------------------------
+Typ: OneToMany / ManyToOne
+Kierunek: Bidirectional
+
+Auction:
+@OneToMany(mappedBy = "auction", cascade = ALL, orphanRemoval = true)
+List<AuctionImageEntity> images;
+
+Image:
+@ManyToOne
+@JoinColumn(name = "auction_id")
+AuctionEntity auction;
+
+Znaczenie:
+- Aukcja ma wiele zdjęć (0..15)
+- Usunięcie aukcji usuwa zdjęcia (cascade + orphan removal)
+
+----------------------------
+
+2.5. Relacja User ↔ Review
+---------------------------
+Typ: OneToMany (dwukierunkowa - author i seller)
+
+Review:
+@ManyToOne
+@JoinColumn(name = "author_id")
+UserEntity author; // kto wystawił opinię
+
+@ManyToOne
+@JoinColumn(name = "seller_id")
+UserEntity seller; // o kim opinia
+
+Znaczenie:
+- User może być autorem wielu opinii
+- User może być oceniany w wielu opiniach (jako sprzedawca)
+
+----------------------------
+
+2.6. Relacja Conversation ↔ Message
+------------------------------------
+Typ: OneToMany / ManyToOne
+
+Conversation:
+@OneToMany(mappedBy = "conversation", cascade = ALL)
+List<MessageEntity> messages;
+
+Message:
+@ManyToOne
+@JoinColumn(name = "conversation_id")
+ConversationEntity conversation;
+
+Znaczenie:
+- Konwersacja zawiera wiele wiadomości
+- Usunięcie konwersacji usuwa wiadomości
+
+----------------------------
+
+2.7. Relacja Conversation ↔ User
+---------------------------------
+Typ: ManyToOne (x2)
+
+Conversation:
+@ManyToOne
+@JoinColumn(name = "participant1_id")
+UserEntity participant1;
+
+@ManyToOne
+@JoinColumn(name = "participant2_id")
+UserEntity participant2;
+
+Znaczenie:
+- Konwersacja ma dokładnie 2 uczestników
+- User może uczestniczyć w wielu konwersacjach
+
+================================================================================
+3. STRATEGIE ŁADOWANIA (FETCH STRATEGIES)
+================================================================================
+
+EAGER Loading (ładowanie natychmiastowe):
+• Auction → Car (potrzebne od razu)
+• Message → Sender/Recipient (dla wyświetlania)
+
+LAZY Loading (ładowanie na żądanie):
+• Auction → Seller (oszczędność pamięci)
+• Auction → Images (ładowane osobno)
+• User → Auctions (duża kolekcja)
+• Conversation → Messages (paginacja)
+
+Zalety LAZY:
+• Mniejsze zużycie pamięci
+• Szybsze zapytania podstawowe
+• N+1 problem rozwiązany przez JOIN FETCH w query
+
+================================================================================
+CZĘŚĆ 2: DIAGRAM KOMPONENTÓW (COMPONENT DIAGRAM)
+         Plik: 07_Component_Diagram.puml
+================================================================================
+
+CEL DIAGRAMU:
+-------------
+Przedstawienie architektury warstwowej systemu, komponentów aplikacji
+oraz przepływu danych między nimi. Diagram pokazuje separację odpowiedzialności
+i zależności między modułami.
+
+================================================================================
+1. WARSTWY ARCHITEKTURY
+================================================================================
+
+1.1. FRONTEND LAYER (Warstwa Prezentacji)
+------------------------------------------
+Komponenty:
+• Web Browser - przeglądarka użytkownika
+• SPA Application - aplikacja Single Page (React/Angular/Vue)
+• WebSocket Client - klient dla komunikacji real-time
+
+Odpowiedzialności:
+• Renderowanie UI
+• Walidacja po stronie klienta
+• Zarządzanie stanem (Redux/Vuex)
+• Obsługa interakcji użytkownika
+• Komunikacja z backend (HTTP + WebSocket)
+
+Technologie:
+• HTML5, CSS3, JavaScript/TypeScript
+• Framework: React/Vue/Angular
+• State Management: Redux/Vuex/Context
+• WebSocket: SockJS + STOMP
+
+----------------------------
+
+1.2. API GATEWAY LAYER (Warstwa Bramy)
+---------------------------------------
+Komponenty:
+• REST API - główny punkt wejścia HTTP
+• JWT Filter - filtr autoryzacyjny
+• CORS Filter - obsługa Cross-Origin requests
+
+Odpowiedzialności:
+• Routing requestów
+• Autentykacja (JWT)
+• Autoryzacja (sprawdzanie ról)
+• CORS handling
+• Rate limiting (opcjonalnie)
+• Request/Response logging
+
+Endpoint pattern:
+/api/{resource}/{id?}/{action?}
+
+Przykłady:
+• POST /api/auth/login
+• GET /api/auctions
+• POST /api/auctions/{id}/favorite
+• GET /api/messages/conversations/my
+
+----------------------------
+
+1.3. CONTROLLER LAYER (Warstwa Kontrolerów)
+--------------------------------------------
+Komponenty:
+• AuthController - autentykacja i rejestracja
+• UserController - zarządzanie użytkownikami
+• AuctionController - CRUD aukcji
+• ChatController - wiadomości
+• ReviewController - opinie
+
+Odpowiedzialności:
+• Obsługa HTTP requestów
+• Walidacja parametrów (@Valid)
+• Mapowanie request → service call
+• Mapowanie response (DTO)
+• Obsługa wyjątków (@ExceptionHandler)
+
+Adnotacje:
+• @RestController
+• @RequestMapping("/api/...")
+• @GetMapping, @PostMapping, @PutMapping, @DeleteMapping
+• @PathVariable, @RequestBody, @RequestParam
+
+----------------------------
+
+1.4. SERVICE LAYER (Warstwa Logiki Biznesowej)
+-----------------------------------------------
+Komponenty:
+• AuctionService - logika aukcji
+• UserService - logika użytkowników
+• ChatService - logika wiadomości
+• ReviewService - logika opinii
+• ImageService - zarządzanie plikami
+• ContractService - generowanie umów
+• EmailService - wysyłka emaili
+• JwtService - operacje na tokenach
+
+Odpowiedzialności:
+• Implementacja logiki biznesowej
+• Transakcje (@Transactional)
+• Walidacja biznesowa
+• Orkiestracja operacji
+• Konwersje Entity ↔ DTO
+
+Przykłady logiki:
+• Sprawdzanie czy user jest właścicielem aukcji
+• Obliczanie średniej ocen sprzedawcy
+• Walidacja VIN
+• Inkrementacja viewCount
+• Sprawdzanie wygasłych aukcji
+
+----------------------------
+
+1.5. MAPPER LAYER (Warstwa Mapowania)
+--------------------------------------
+Komponenty:
+• AuctionMapper (MapStruct)
+• UserMapper (MapStruct)
+
+Odpowiedzialności:
+• Mapowanie Entity → DTO
+• Mapowanie DTO → Entity
+• Konwersje typów
+• Agregacja danych z wielu źródeł
+
+Przykład:
+AuctionEntity → AuctionResponseDto
+- Łączy dane z Auction, Car, Seller
+- Dodaje obliczone pola (sellerSinceYear)
+- Mapuje kolekcje (images → imageUrls)
+
+----------------------------
+
+1.6. REPOSITORY LAYER (Warstwa Dostępu do Danych)
+--------------------------------------------------
+Komponenty:
+• UserRepository
+• AuctionRepository
+• MessageRepository
+• ReviewRepository
+• ConversationRepository
+• AuctionImageRepository
+
+Odpowiedzialności:
+• Abstrakcja dostępu do bazy
+• CRUD operations
+• Custom queries (@Query)
+• Paginacja (Pageable)
+• Sortowanie (Sort)
+
+Dziedziczenie:
+interface AuctionRepository extends JpaRepository<AuctionEntity, UUID> {
+  Page<AuctionEntity> findAllByStatus(AuctionStatus status, Pageable pageable);
+  List<AuctionEntity> findAllBySellerId(UUID sellerId);
+}
+
+----------------------------
+
+1.7. DATA LAYER (Warstwa Danych)
+---------------------------------
+Komponenty:
+• PostgreSQL/MySQL Database
+
+Tabele:
+• users
+• auctions
+• cars
+• auction_images
+• user_favorite_auctions (join table)
+• messages
+• conversations
+• reviews
+
+Charakterystyka:
+• Relacyjna baza danych (RDBMS)
+• ACID transactions
+• Foreign keys + constraints
+• Indexes dla wydajności
+• Backup & recovery
+
+----------------------------
+
+1.8. EXTERNAL SYSTEMS (Systemy Zewnętrzne)
+-------------------------------------------
+Komponenty:
+• SMTP Server - wysyłka emaili (np. Gmail, SendGrid)
+• File Storage - przechowywanie plików (lokalny system / S3)
+• PDF Generator Library - generowanie PDF (iText, Apache PDFBox)
+
+Integracje:
+• EmailService → SMTP (JavaMailSender)
+• ImageService → File Storage (File I/O)
+• ContractService → PDF Library
+
+----------------------------
+
+1.9. REAL-TIME COMMUNICATION (WebSocket)
+-----------------------------------------
+Komponenty:
+• WebSocket Server - serwer STOMP/SockJS
+• STOMP Protocol Handler - obsługa protokołu
+
+Endpointy:
+• /ws - connection endpoint
+• /app/chat.send - wysyłka wiadomości
+• /topic/messages/{userId} - subskrypcja wiadomości
+
+Przepływ:
+1. Client nawiązuje połączenie WS + JWT
+2. Server weryfikuje i autoryzuje
+3. Client subscribe /topic/messages/{userId}
+4. Nowa wiadomość → broadcast do subskrybentów
+
+================================================================================
+2. PRZEPŁYW DANYCH
+================================================================================
+
+2.1. PRZEPŁYW READ (Odczyt danych)
+----------------------------------
+Frontend → API Gateway → JWT Filter → Controller → Service → Repository → DB
+
+Przykład: GET /api/auctions
+
+1. Browser wysyła GET /api/auctions?page=0&size=20
+2. JWT Filter weryfikuje token (opcjonalny dla GET)
+3. AuctionController.getAllAuctions(pageable, auth)
+4. AuctionService.getAllActiveAuctions(pageable, username)
+5. AuctionRepository.findAllByStatus(ACTIVE, pageable)
+6. Database wykonuje SELECT z paginacją
+7. Hibernate mapuje ResultSet → List<AuctionEntity>
+8. Service mapuje Entity → DTO (przez Mapper)
+9. Controller zwraca Page<AuctionResponseDto>
+10. Frontend renderuje listę
+
+----------------------------
+
+2.2. PRZEPŁYW WRITE (Zapis danych)
+-----------------------------------
+Frontend → API Gateway → JWT Filter → Controller → Service → Repository → DB
+
+Przykład: POST /api/auctions
+
+1. Browser wysyła POST /api/auctions + body + token
+2. JWT Filter weryfikuje token i ekstraktuje username
+3. AuctionController.createAuction(dto, auth)
+4. @Valid waliduje DTO
+5. AuctionService.createAuction(dto, username)
+6. Service pobiera UserEntity (seller)
+7. Service mapuje DTO → Entity
+8. Service ustawia dodatkowe pola (status, dates)
+9. AuctionRepository.save(auction) - @Transactional
+10. Database: BEGIN TRANSACTION
+11. INSERT INTO cars
+12. INSERT INTO auctions
+13. COMMIT
+14. Hibernate zwraca entity z ID
+15. Service mapuje Entity → DTO
+16. Controller zwraca 200 OK + DTO
+17. Frontend przekierowuje na stronę aukcji
+
+----------------------------
+
+2.3. PRZEPŁYW WEBSOCKET (Real-time)
+------------------------------------
+Frontend WS Client → WS Server → ChatService → MessageRepository → DB
+                                ↓
+                           Broadcast → Other WS Clients
+
+Przykład: Wysłanie wiadomości
+
+1. User A pisze wiadomość
+2. Frontend wysyła POST /api/messages/send
+3. ChatService zapisuje do DB
+4. Frontend wysyła WS message: /app/chat.send
+5. WS Server identyfikuje odbiorcę (User B)
+6. Sprawdza czy User B jest online
+7. Jeśli TAK: broadcast do /topic/messages/{userB}
+8. WS Client User B odbiera
+9. Frontend User B wyświetla notyfikację
+
+================================================================================
+3. SEPARACJA ODPOWIEDZIALNOŚCI (SOLID Principles)
+================================================================================
+
+Single Responsibility:
+• Controller - tylko obsługa HTTP
+• Service - tylko logika biznesowa
+• Repository - tylko dostęp do danych
+
+Open/Closed:
+• Interfejsy (Repository extends JpaRepository)
+• Łatwe dodawanie nowych funkcji bez modyfikacji istniejących
+
+Liskov Substitution:
+• DTO dziedziczą z Base classes
+• Repositories implementują interfejsy
+
+Interface Segregation:
+• Małe, specjalizowane interfejsy (UserService, AuctionService)
+
+Dependency Inversion:
+• Zależności przez interfejsy, nie konkretne klasy
+• Dependency Injection (Spring @Autowired)
+
+================================================================================
+4. BEZPIECZEŃSTWO W ARCHITEKTURZE
+================================================================================
+
+Warstwy bezpieczeństwa:
+1. HTTPS (transport layer)
+2. CORS Filter (cross-origin protection)
+3. JWT Filter (authentication)
+4. @PreAuthorize (authorization na metodzie)
+5. Business logic validation (serwisy)
+6. Database constraints (integralność danych)
+
+JWT Flow:
+1. POST /api/auth/login → zwraca token
+2. Każdy request: Authorization: Bearer {token}
+3. JWT Filter dekoduje i weryfikuje
+4. Ekstraktuje username i role
+5. Ustawia SecurityContext
+6. Controller ma dostęp do Authentication
+
+================================================================================
+KONIEC DOKUMENTU
+================================================================================

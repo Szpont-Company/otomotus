@@ -1,0 +1,265 @@
+================================================================================
+                    OTOMOTUS - OPIS SYSTEMU I GRUPY UŻYTKOWNIKÓW
+================================================================================
+
+Data utworzenia: 25.01.2026
+Wersja: 1.0
+Autorzy: Otomotus Development Team
+
+================================================================================
+1. CEL SYSTEMU
+================================================================================
+
+Otomotus to internetowa platforma aukcyjna dedykowana sprzedaży i zakupowi
+samochodów używanych. Głównym celem systemu jest:
+
+• Ułatwienie sprzedaży pojazdów przez osoby prywatne i dealerów
+• Zapewnienie bezpiecznej i przejrzystej platformy dla kupujących
+• Umożliwienie bezpośredniej komunikacji między sprzedającymi a kupującymi
+• Dostarczenie narzędzi do weryfikacji ofert i sprzedawców
+• Automatyzacja procesu generowania dokumentów sprzedażowych
+• Zwiększenie transparentności rynku samochodów używanych w Polsce
+
+================================================================================
+2. ZAKRES FUNKCJONALNY SYSTEMU
+================================================================================
+
+2.1. ZARZĄDZANIE AUKCJAMI
+--------------------------
+• Tworzenie ogłoszeń sprzedaży samochodów z pełną specyfikacją techniczną
+• Dodawanie wielu zdjęć do aukcji
+• Przeglądanie aktywnych ofert z zaawansowanym filtrowaniem
+• Edycja i usuwanie własnych ogłoszeń
+• Automatyczne śledzenie liczby wyświetleń
+• System promowanych ogłoszeń
+• Status aukcji (ACTIVE, SOLD, EXPIRED, CLOSED)
+
+2.2. SYSTEM UŻYTKOWNIKÓW
+------------------------
+• Rejestracja nowych użytkowników z weryfikacją email
+• Logowanie z tokenami JWT (bezstanowa autentykacja)
+• Profile użytkowników z danymi kontaktowymi
+• Zarządzanie własnymi danymi
+• Panel administratora z pełnym dostępem CRUD
+• Role użytkowników (USER, ADMIN)
+
+2.3. ULUBIONE AUKCJE
+--------------------
+• Dodawanie aukcji do listy ulubionych
+• Usuwanie z ulubionych
+• Przeglądanie zapisanych ofert
+• Oznaczanie aukcji jako ulubione na listach
+
+2.4. KOMUNIKACJA
+----------------
+• System wiadomości prywatnych między użytkownikami
+• Rozmowy powiązane z konkretnymi aukcjami
+• WebSocket dla komunikacji w czasie rzeczywistym
+• Historia konwersacji
+• Oznaczanie wiadomości jako przeczytane/nieprzeczytane
+• Edycja i usuwanie własnych wiadomości
+
+2.5. SYSTEM OPINII I OCEN
+-------------------------
+• Wystawianie opinii dla sprzedawców
+• Ocena w skali 1-5 gwiazdek
+• Tekstowe komentarze
+• Statystyki i podsumowanie ratingu sprzedawcy
+• Ranking sprzedawców
+• Historia transakcji
+
+2.6. GENEROWANIE DOKUMENTÓW
+----------------------------
+• Automatyczne generowanie umów kupna-sprzedaży w PDF
+• Dokumenty zgodne z prawem polskim
+• Wstępne wypełnienie danymi z aukcji i profili użytkowników
+
+2.7. ZARZĄDZANIE MULTIMEDIAMI
+------------------------------
+• Upload zdjęć samochodów
+• Przechowywanie plików lokalnie
+• Automatyczne nazewnictwo plików (UUID)
+• Wsparcie dla wielu formatów obrazów
+
+================================================================================
+3. GRUPY UŻYTKOWNIKÓW SYSTEMU
+================================================================================
+
+3.1. UŻYTKOWNIK NIEZALOGOWANY (Guest)
+--------------------------------------
+Charakterystyka:
+• Osoba odwiedzająca platformę bez konta
+• Przeglądanie ofert samochodów
+• Dostęp tylko do publicznych informacji
+
+Możliwości:
+• Przeglądanie listy aktywnych aukcji
+• Wyświetlanie szczegółów pojedynczej aukcji
+• Wyszukiwanie i filtrowanie ofert
+• Rejestracja nowego konta
+
+Ograniczenia:
+• Brak możliwości kontaktu ze sprzedawcami
+• Brak dostępu do zapisywania ulubionych
+• Brak możliwości dodawania własnych ogłoszeń
+• Brak dostępu do wiadomości i opinii
+
+3.2. UŻYTKOWNIK ZAREJESTROWANY - KUPUJĄCY (Buyer/User)
+-------------------------------------------------------
+Charakterystyka:
+• Osoba posiadająca zweryfikowane konto
+• Poszukuje samochodu do zakupu
+• Rola: USER
+
+Możliwości:
+• Wszystkie funkcje użytkownika niezalogowanego PLUS:
+• Dodawanie aukcji do ulubionych
+• Wysyłanie wiadomości do sprzedawców
+• Zarządzanie własnymi danymi profilu
+• Przeglądanie historii konwersacji
+• Wystawianie opinii sprzedawcom
+• Generowanie umów kupna-sprzedaży
+• Dostęp do szczegółowych danych kontaktowych sprzedawców
+
+Potrzeby biznesowe:
+• Znalezienie odpowiedniego samochodu
+• Weryfikacja wiarygodności sprzedawcy
+• Bezpieczna komunikacja
+• Porównywanie ofert
+
+3.3. UŻYTKOWNIK ZAREJESTROWANY - SPRZEDAJĄCY (Seller/User)
+-----------------------------------------------------------
+Charakterystyka:
+• Osoba posiadająca zweryfikowane konto
+• Sprzedaje własny samochód
+• Rola: USER (ta sama co kupujący)
+
+Możliwości:
+• Wszystkie funkcje kupującego PLUS:
+• Tworzenie nowych ogłoszeń sprzedaży
+• Dodawanie zdjęć do aukcji
+• Edycja własnych ogłoszeń
+• Usuwanie ogłoszeń
+• Śledzenie liczby wyświetleń
+• Odpowiadanie na zapytania kupujących
+• Zarządzanie statusem aukcji
+
+Potrzeby biznesowe:
+• Sprzedaż samochodu po korzystnej cenie
+• Dotarcie do szerokiego grona kupujących
+• Profesjonalna prezentacja pojazdu
+• Budowanie pozytywnej reputacji
+
+3.4. ADMINISTRATOR (Admin)
+--------------------------
+Charakterystyka:
+• Pracownik/właściciel platformy
+• Pełny dostęp do systemu
+• Rola: ADMIN
+
+Możliwości:
+• Wszystkie funkcje użytkownika standardowego PLUS:
+• Przeglądanie wszystkich użytkowników
+• Modyfikacja danych użytkowników
+• Usuwanie kont użytkowników
+• Zarządzanie wszystkimi aukcjami
+• Moderacja treści
+• Dostęp do statystyk i raportów
+• Zarządzanie rolami użytkowników
+
+Odpowiedzialności:
+• Moderacja platformy
+• Rozwiązywanie sporów
+• Usuwanie nieodpowiednich treści
+• Wsparcie techniczne użytkowników
+• Zapewnienie bezpieczeństwa danych
+
+================================================================================
+4. TECHNOLOGIE I ARCHITEKTURA
+================================================================================
+
+Backend:
+• Java 17+ / Spring Boot 3.x
+• Spring Security z JWT
+• Spring Data JPA / Hibernate
+• PostgreSQL / MySQL (baza danych)
+• WebSocket dla komunikacji real-time
+• Maven (zarządzanie zależnościami)
+
+Funkcjonalności:
+• RESTful API
+• Bezstanowa autentykacja (JWT tokens)
+• Walidacja danych (Bean Validation)
+• Obsługa wyjątków
+• Mapowanie DTO (MapStruct)
+• Generowanie PDF (umowy)
+• Email verification
+
+Bezpieczeństwo:
+• Hashowanie haseł (BCrypt)
+• Tokeny JWT z expiration time
+• CORS configuration
+• Role-based access control (RBAC)
+• Walidacja na poziomie endpointów
+
+================================================================================
+5. MODEL BIZNESOWY
+================================================================================
+
+Otomotus działa jako platforma typu marketplace, łącząca sprzedających
+i kupujących samochodów. Potencjalne źródła przychodów:
+
+• Opłaty za wyróżnione ogłoszenia (promowane aukcje)
+• Opłaty abonamentowe dla dealerów
+• Reklamy (w przyszłości)
+• Prowizje od transakcji (opcjonalnie)
+• Usługi premium (weryfikacja VIN, historia pojazdu)
+
+Wartość dla użytkowników:
+• Bezpłatne podstawowe funkcje
+• Szeroki zasięg geograficzny
+• Bezpieczna komunikacja
+• Transparentny system opinii
+• Automatyzacja dokumentacji
+
+================================================================================
+6. KORZYŚCI DLA UŻYTKOWNIKÓW
+================================================================================
+
+Dla Kupujących:
+• Łatwy dostęp do szerokiej oferty samochodów
+• Możliwość weryfikacji sprzedawcy przez opinie
+• Bezpośredni kontakt ze sprzedającym
+• Wygodne zarządzanie ulubionymi ofertami
+• Oszczędność czasu
+
+Dla Sprzedających:
+• Darmowa publikacja ogłoszeń
+• Duży zasięg potencjalnych kupujących
+• Profesjonalne narzędzia do prezentacji pojazdu
+• Automatyczne generowanie umów
+• Budowanie reputacji przez system opinii
+• Statystyki wyświetleń
+
+Dla Platformy:
+• Skalowalna architektura
+• Automatyzacja procesów
+• Bezpieczny system uwierzytelniania
+• Łatwa rozbudowa o nowe funkcje
+
+================================================================================
+7. PRZEWAGI KONKURENCYJNE
+================================================================================
+
+• Dedykowane rozwiązanie tylko dla rynku motoryzacyjnego
+• Szczegółowa specyfikacja techniczna pojazdów
+• System opinii budujący zaufanie
+• Komunikacja w czasie rzeczywistym (WebSocket)
+• Automatyczne generowanie dokumentów prawnych
+• Nowoczesna architektura REST API
+• Responsywny interfejs użytkownika
+• Bezpieczeństwo danych
+
+================================================================================
+KONIEC DOKUMENTU
+================================================================================

@@ -12,6 +12,16 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca wiadomość w rozmowie.
+ * <p>
+ * Zawiera treść wiadomości, informacje o nadawcy i odbiorcy,
+ * znaczniki czasowe oraz status przeczytania.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter @Setter
 @Entity
 @Table(name="messages", indexes = {@Index(name="idx_message_conversation", columnList = "conversationId")})

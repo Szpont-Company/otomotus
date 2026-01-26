@@ -1,0 +1,163 @@
+@startuml Sequence Diagram - Utworzenie i Publikacja Aukcji
+
+title Diagram Przepływu Sterowania\nScenariusz: Utworzenie i Publikacja Aukcji Samochodu
+
+actor "Sprzedawca" as Seller
+participant "Frontend\n(Browser)" as UI
+participant "API Gateway\n/api/auctions" as API
+participant "JWT Filter" as JWT
+participant "AuctionController" as Controller
+participant "AuctionService" as Service
+participant "AuctionRepository" as RepoAuction
+participant "UserRepository" as RepoUser
+participant "ImageStorage\nService" as Storage
+participant "Database" as DB
+
+== Faza 1: Autoryzacja ==
+
+Seller -> UI: Loguje się do systemu
+UI -> API: POST /api/auth/login\n{username, password}
+API --> UI: 200 OK\n{token: "JWT..."}
+UI -> UI: Zapisuje token w localStorage
+
+note right of UI
+  Token JWT zawiera:
+  - username
+  - role (USER)
+  - expiration time
+end note
+
+== Faza 2: Przygotowanie Danych Aukcji ==
+
+Seller -> UI: Wypełnia formularz\n(dane pojazdu, opis, zdjęcia)
+UI -> UI: Walidacja po stronie klienta
+
+note right of Seller
+  Wymagane dane:
+  - Marka, model, rok produkcji
+  - VIN
+  - Przebieg, silnik, paliwo
+  - Cena, lokalizacja
+  - Min. 1 zdjęcie
+end note
+
+== Faza 3: Upload Zdjęć ==
+
+Seller -> UI: Dodaje zdjęcia (1-15)
+
+loop Dla każdego zdjęcia
+    UI -> API: POST /api/auctions/{tempId}/images\nMultipartFile
+    API -> JWT: Weryfikuje token
+    JWT -> JWT: Sprawdza ważność i uprawnienia
+    JWT --> API: Uwierzytelniony użytkownik
+
+    API -> Controller: uploadImage(file, auth)
+    Controller -> Storage: storeFile(file)
+    Storage -> Storage: Generuje UUID dla pliku
+    Storage --> Controller: fileName (UUID_nazwa.jpg)
+    Controller -> DB: Zapisuje AuctionImageEntity
+    DB --> Controller: OK
+    Controller --> API: 200 OK "Photo saved: UUID..."
+    API --> UI: Sukces
+    UI -> UI: Pokazuje miniaturę
+end
+
+== Faza 4: Utworzenie Aukcji ==
+
+UI -> API: POST /api/auctions\n{AuctionCreateRequestDto}
+note right
+  Request body zawiera:
+  - Car details (VIN, brand, model, year, etc.)
+  - Auction details (title, description, price)
+  - Location, phone number
+  - Negotiable flag
+end note
+
+API -> JWT: Weryfikuje Bearer token
+JWT -> JWT: Dekoduje JWT i waliduje
+
+alt Token nieprawidłowy lub wygasły
+    JWT --> API: 401 Unauthorized
+    API --> UI: Błąd autoryzacji
+    UI -> Seller: "Sesja wygasła, zaloguj się ponownie"
+else Token prawidłowy
+    JWT --> API: Authenticated User
+    API -> Controller: createAuction(request, username)
+
+    Controller -> Service: createAuction(request, username)
+
+    Service -> RepoUser: findByUsername(username)
+    RepoUser -> DB: SELECT * FROM users WHERE username = ?
+    DB --> RepoUser: UserEntity
+    RepoUser --> Service: UserEntity (seller)
+
+    alt Użytkownik nie znaleziony
+        Service --> Controller: throw ResourceNotFoundException
+        Controller --> API: 404 Not Found
+        API --> UI: Błąd
+        UI -> Seller: "Użytkownik nie istnieje"
+    else Użytkownik znaleziony
+
+        Service -> Service: Mapuje DTO na Entity
+        note right
+          - CarEntity (z danych pojazdu)
+          - AuctionEntity (z danych aukcji)
+        end note
+
+        Service -> Service: auction.setSeller(user)\nauction.setStatus(ACTIVE)\nauction.setExpiresAt(+30 dni)
+
+        Service -> RepoAuction: save(auction)
+        RepoAuction -> DB: INSERT INTO auctions...\nINSERT INTO cars...
+
+        activate DB
+        DB -> DB: BEGIN TRANSACTION
+        DB -> DB: Zapisuje CarEntity
+        DB -> DB: Zapisuje AuctionEntity
+        DB -> DB: COMMIT
+        deactivate DB
+
+        DB --> RepoAuction: Saved AuctionEntity (z ID)
+        RepoAuction --> Service: AuctionEntity
+
+        Service -> Service: Mapuje Entity na DTO
+        Service --> Controller: AuctionResponseDto
+        Controller --> API: 200 OK {AuctionResponseDto}
+        API --> UI: Sukces z danymi aukcji
+
+        UI -> UI: Przekierowanie na\nstronę aukcji
+        UI -> Seller: ✓ "Aukcja utworzona pomyślnie!"
+    end
+end
+
+== Faza 5: Weryfikacja ==
+
+Seller -> UI: Przegląda swoją aukcję
+UI -> API: GET /api/auctions/{id}
+API -> Controller: getAuctionDetails(id, username)
+Controller -> Service: getAuctionDetails(id, username)
+Service -> RepoAuction: findById(id)
+RepoAuction -> DB: SELECT * FROM auctions WHERE id = ?
+DB --> RepoAuction: AuctionEntity
+RepoAuction --> Service: AuctionEntity
+
+Service -> Service: Inkrementuje viewCount++
+Service -> RepoAuction: save(auction)
+RepoAuction -> DB: UPDATE auctions SET view_count = ?
+DB --> RepoAuction: OK
+
+Service -> Service: Mapuje na DTO\n+ dodaje statystyki
+Service --> Controller: AuctionResponseDto
+Controller --> API: 200 OK
+API --> UI: Dane aukcji
+UI -> Seller: Wyświetla pełne szczegóły
+
+note right of Seller
+  Sprzedawca widzi:
+  - Wszystkie dane pojazdu
+  - Zdjęcia
+  - Liczbę wyświetleń
+  - Status: ACTIVE
+  - Opcje edycji/usunięcia
+end note
+
+@enduml

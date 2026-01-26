@@ -5,8 +5,19 @@ import lombok.*;
 import org.otomotus.backend.config.UserRole;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Encja reprezentująca użytkownika aplikacji.
+ * <p>
+ * Zawiera dane autentykacji, informacje profilu oraz status weryfikacji konta.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Entity
 @Table(name = "users")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -52,4 +63,13 @@ public class UserEntity {
 
     @Column(nullable = false)
     private LocalDateTime tokenExpirationDate;
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_favorite_auctions",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "auction_id")
+    )
+    @Builder.Default
+    private Set<AuctionEntity> favoriteAuctions = new HashSet<>();
 }

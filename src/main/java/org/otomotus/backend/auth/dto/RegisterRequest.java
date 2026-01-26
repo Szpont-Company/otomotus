@@ -5,6 +5,16 @@ import lombok.*;
 
 import org.otomotus.backend.auth.config.validation.*;
 
+/**
+ * DTO dla żądania rejestracji nowego użytkownika.
+ * <p>
+ * Zawiera dane wymagane do utworzenia nowego konta wraz z walidacją.
+ * Email i login muszą być unikalne, hasło musi spełniać wymagania bezpieczeństwa.
+ * </p>
+ *
+ * @author Otomotus Development Team
+ * @version 1.0
+ */
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RegisterRequest {
 
